@@ -17,12 +17,12 @@
 
 #define MASTER_PROC 0
 
-typedef struct proc_diff_result {
+typedef struct proc_diff_result_struct {
     double prime1, prime2, diff, first_prime, last_prime;
-} proc_diff_result;
+} proc_diff_result_struct;
 
 int main(int argc, char **argv) {
-    MPI_Init(&argc, &argc);
+    MPI_Init(&argc, &argv);
 
     clock_t start_time = clock();
 
@@ -62,18 +62,18 @@ int main(int argc, char **argv) {
 
     //create struct of doubles for reporting results to master proc
     //sending mpz_t would have required more work, would need to define type for MPI
-    proc_diff_result proc_diff_result, *global_proc_diff_results;
-    proc_diff_result->prime1 = mpz_get_d(max_diff_prime1);
-    proc_diff_result->prime2 = mpz_get_d(max_diff_prime2);
-    proc_diff_result->diff = mpz_get_d(max_diff);
-    proc_diff_result->first_prime = mpz_get_d(first_prime);
-    proc_diff_result->last_prime = mpz_get_d(last_prime);
+    proc_diff_result_struct proc_diff_result, *global_proc_diff_results;
+    proc_diff_result.prime1 = mpz_get_d(max_diff_prime1);
+    proc_diff_result.prime2 = mpz_get_d(max_diff_prime2);
+    proc_diff_result.diff = mpz_get_d(max_diff);
+    proc_diff_result.first_prime = mpz_get_d(first_prime);
+    proc_diff_result.last_prime = mpz_get_d(last_prime);
 
-    mpz_clear(range_start, first_prime, last_prime, current_prime, previous_prime, current_diff, max_diff, max_diff_prime1, max_diff_prime2, NULL);
+    mpz_clears(range_start, first_prime, last_prime, current_prime, previous_prime, current_diff, max_diff, max_diff_prime1, max_diff_prime2, NULL);
 
     //only master proc needs recv var
     if (rank == MASTER_PROC) {
-        global_proc_diff_results = (proc_diff_result *) malloc(sizeof(proc_diff_result)*num_procs);
+        global_proc_diff_results = (proc_diff_result_struct *) malloc(sizeof(proc_diff_result_struct)*num_procs);
     }
 
     MPI_Gather(&proc_diff_result, 5, MPI_DOUBLE, &global_proc_diff_results, 5, MPI_DOUBLE, MASTER_PROC, MPI_COMM_WORLD);
@@ -83,32 +83,32 @@ int main(int argc, char **argv) {
         double global_max_prime1, global_max_prime2, edge_diff, global_max_diff = 0;
 
         for (int i = 0; i < num_procs-1; i++) {
-            edge_diff = global_proc_diff_results[i+1]->first_prime - global_proc_diff_results[i]->last_prime;
-            if (edge_diff > global_proc_diff_results[i]->diff) {
+            edge_diff = global_proc_diff_results[i+1].first_prime - global_proc_diff_results[i].last_prime;
+            if (edge_diff > global_proc_diff_results[i].diff) {
                 if (edge_diff > global_max_diff) {
                     global_max_diff = edge_diff;
-                    global_max_prime1 = global_proc_diff_results[i+1]->first_prime;
-                    global_max_prime2 = global_proc_diff_results[i]->last_prime;
+                    global_max_prime1 = global_proc_diff_results[i+1].first_prime;
+                    global_max_prime2 = global_proc_diff_results[i].last_prime;
                 } 
-            } else if (global_proc_diff_results[i]->diff > global_max_diff) {
-                global_max_diff = global_proc_diff_results[i]->diff;
-                global_max_prime1 = global_proc_diff_results[i]->prime1;
-                global_max_prime2 = global_proc_diff_results[i]->prime2;
+            } else if (global_proc_diff_results[i].diff > global_max_diff) {
+                global_max_diff = global_proc_diff_results[i].diff;
+                global_max_prime1 = global_proc_diff_results[i].prime1;
+                global_max_prime2 = global_proc_diff_results[i].prime2;
             }
         }
 
         //check last proc's max diff
-        if (global_proc_diff_results[num_procs-1]]->diff > global_max_diff) {
-            global_max_diff = global_proc_diff_results[num_procs-1]->diff;
-            global_max_prime1 = global_proc_diff_results[num_procs-1]->prime1;
-            global_max_prime2 = global_proc_diff_results[num_procs-1]->prime2;
+        if (global_proc_diff_results[num_procs-1].diff > global_max_diff) {
+            global_max_diff = global_proc_diff_results[num_procs-1].diff;
+            global_max_prime1 = global_proc_diff_results[num_procs-1].prime1;
+            global_max_prime2 = global_proc_diff_results[num_procs-1].prime2;
         }
 
         printf("Maximum difference in range 1 - %f is %f between %f and %f", global_range_limit, global_max_diff, global_max_prime1, global_max_prime2);
     }
     
     clock_t end_time = clock();
-    float elapsed_seconds = float(end_time - start_time) / CLOCKS_PER_SEC;
+    float elapsed_seconds = (float) (end_time - start_time) / CLOCKS_PER_SEC;
     printf("Process %d took %f.3 seconds", rank, elapsed_seconds);
 
     MPI_Finalize();
