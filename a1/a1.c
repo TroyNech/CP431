@@ -1,12 +1,13 @@
 /* 
 * Authors: Troy Nechanicky, 150405860; Ben Ngan, 140567260; Alvin Yao, 150580680
-* Date: September 17, 2018
+* Date: October 1, 2018
 * 
 * Usage: mpirun -np num_procs a1 range_limit
 * Description: Finds the largest difference between 2 consecutive primes, within the range 0-$limit
 * Limitations: 
 *   Assumes that there is at least 1 prime in each proc's range
 *   Assumes that the range can be evenly divided among the procs
+*   Assumes that the input is correct
 */
 
 #include <gmp.h>
@@ -17,14 +18,15 @@
 
 #define MASTER_PROC 0
 
-typedef struct proc_diff_result_struct {
+typedef struct {
     double prime1, prime2, diff, first_prime, last_prime;
 } proc_diff_result_struct;
 
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
 
-    clock_t start_time = clock();
+    MPI_Barrier(MPI_COMM_WORLD);
+    double start_time = MPI_Wtime();
 
     int rank, num_procs;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -34,7 +36,7 @@ int main(int argc, char **argv) {
     mpz_t range_start, first_prime, last_prime, current_prime, previous_prime, current_diff, max_diff, max_diff_prime1, max_diff_prime2;
     mpz_inits(range_start, first_prime, last_prime, current_prime, previous_prime, current_diff, max_diff, max_diff_prime1, max_diff_prime2, NULL);
 
-    global_range_limit = atof(argv[0]);
+    global_range_limit = atof(argv[1]);
 
     //divide range among procs
     mpz_set_d(range_start, (global_range_limit/num_procs) * rank);
@@ -62,7 +64,7 @@ int main(int argc, char **argv) {
 
     //create struct of doubles for reporting results to master proc
     //sending mpz_t would have required more work, would need to define type for MPI
-    proc_diff_result_struct proc_diff_result, *global_proc_diff_results;
+    proc_diff_result_struct proc_diff_result, *global_proc_diff_results = NULL;
     proc_diff_result.prime1 = mpz_get_d(max_diff_prime1);
     proc_diff_result.prime2 = mpz_get_d(max_diff_prime2);
     proc_diff_result.diff = mpz_get_d(max_diff);
@@ -76,7 +78,7 @@ int main(int argc, char **argv) {
         global_proc_diff_results = (proc_diff_result_struct *) malloc(sizeof(proc_diff_result_struct)*num_procs);
     }
 
-    MPI_Gather(&proc_diff_result, 5, MPI_DOUBLE, &global_proc_diff_results, 5, MPI_DOUBLE, MASTER_PROC, MPI_COMM_WORLD);
+   MPI_Gather(&proc_diff_result, 5, MPI_DOUBLE, global_proc_diff_results, 5, MPI_DOUBLE, MASTER_PROC, MPI_COMM_WORLD);
 
     //find max diff of all procs
     if (rank == MASTER_PROC) {
@@ -104,12 +106,15 @@ int main(int argc, char **argv) {
             global_max_prime2 = global_proc_diff_results[num_procs-1].prime2;
         }
 
-        printf("Maximum difference in range 1 - %f is %f between %f and %f", global_range_limit, global_max_diff, global_max_prime1, global_max_prime2);
+        printf("Maximum difference in range 1 - %0.f is %.0f between %.0f and %.0f\n", global_range_limit, global_max_diff, global_max_prime1, global_max_prime2);
     }
     
-    clock_t end_time = clock();
-    float elapsed_seconds = (float) (end_time - start_time) / CLOCKS_PER_SEC;
-    printf("Process %d took %f.3 seconds", rank, elapsed_seconds);
+    double end_time = MPI_Wtime();
+    double elapsed_seconds = end_time - start_time;
+
+    //wait for master proc to finish printing max before printing times
+    MPI_Barrier(MPI_COMM_WORLD);
+    printf("Process %d took %.3f seconds\n", rank, elapsed_seconds);
 
     MPI_Finalize();
 
