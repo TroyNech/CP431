@@ -1,6 +1,6 @@
 /* 
 * Authors: Troy Nechanicky, 150405860; Ben Ngan, 140567260; Alvin Yao, 150580680
-* Date: October 1, 2018
+* Date: October 2, 2018
 * 
 * Usage: mpirun -np num_procs a1 range_limit
 * Description: Finds the largest difference between 2 consecutive primes, within the range 0-$limit
@@ -25,6 +25,7 @@ typedef struct {
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
 
+    //wait for all processes to start before beginning for timing reasons
     MPI_Barrier(MPI_COMM_WORLD);
     double start_time = MPI_Wtime();
 
@@ -34,7 +35,17 @@ int main(int argc, char **argv) {
 
     double global_range_limit, range_limit;
     mpz_t range_start, first_prime, last_prime, current_prime, previous_prime, current_diff, max_diff, max_diff_prime1, max_diff_prime2;
-    mpz_inits(range_start, first_prime, last_prime, current_prime, previous_prime, current_diff, max_diff, max_diff_prime1, max_diff_prime2, NULL);
+ 
+    //mpz_inits doesn't work on orca SHARCNET cluster for some reason, so need to use mpz_init
+    mpz_init(range_start);
+    mpz_init(first_prime);
+    mpz_init(last_prime);
+    mpz_init(current_prime);
+    mpz_init(previous_prime);
+    mpz_init(current_diff);
+    mpz_init(max_diff);
+    mpz_init(max_diff_prime1);
+    mpz_init(max_diff_prime2);
 
     global_range_limit = atof(argv[1]);
 
@@ -71,7 +82,16 @@ int main(int argc, char **argv) {
     proc_diff_result.first_prime = mpz_get_d(first_prime);
     proc_diff_result.last_prime = mpz_get_d(last_prime);
 
-    mpz_clears(range_start, first_prime, last_prime, current_prime, previous_prime, current_diff, max_diff, max_diff_prime1, max_diff_prime2, NULL);
+    //mpz_clears doesn't work on orca SHARCNET cluster for some reason, so need to use mpz_clear
+    mpz_clear(range_start);
+    mpz_clear(first_prime);
+    mpz_clear(last_prime);
+    mpz_clear(current_prime);
+    mpz_clear(previous_prime);
+    mpz_clear(current_diff);
+    mpz_clear(max_diff);
+    mpz_clear(max_diff_prime1);
+    mpz_clear(max_diff_prime2);
 
     //only master proc needs recv var
     if (rank == MASTER_PROC) {
@@ -107,15 +127,14 @@ int main(int argc, char **argv) {
         }
 
         printf("Maximum difference in range 1 - %0.f is %.0f between %.0f and %.0f\n", global_range_limit, global_max_diff, global_max_prime1, global_max_prime2);
-    }
-    
+
     double end_time = MPI_Wtime();
     double elapsed_seconds = end_time - start_time;
 
-    //wait for master proc to finish printing max before printing times
-    MPI_Barrier(MPI_COMM_WORLD);
-    printf("Process %d took %.3f seconds\n", rank, elapsed_seconds);
+    printf("Took %.2f seconds\n", elapsed_seconds);
 
+    }
+    
     MPI_Finalize();
 
     return EXIT_SUCCESS;
