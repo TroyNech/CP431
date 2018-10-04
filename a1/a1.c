@@ -1,16 +1,16 @@
 /* 
 * Authors: Troy Nechanicky, 150405860; Ben Ngan, 140567260; Alvin Yao, 150580680
-* Date: October 2, 2018
+* Date: October 4, 2018
 * 
 * Usage: mpirun -np num_procs a1 range_limit
 * Description: Finds the largest difference between 2 consecutive primes, within the range 0-$limit
 * Limitations: 
 *   Assumes that there is at least 1 prime in each proc's range
-*   Assumes that the range can be evenly divided among the procs
 *   Assumes that the input is correct
 */
 
 #include <gmp.h>
+#include <math.h>
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 
-    double global_range_limit, range_limit;
+    double global_range_limit, range_limit, range_size;
     mpz_t range_start, first_prime, last_prime, current_prime, previous_prime, current_diff, max_diff, max_diff_prime1, max_diff_prime2;
  
     //mpz_inits doesn't work on orca SHARCNET cluster for some reason, so need to use mpz_init
@@ -48,10 +48,11 @@ int main(int argc, char **argv) {
     mpz_init(max_diff_prime2);
 
     global_range_limit = atof(argv[1]);
+    range_size = floor(global_range_limit/num_procs);
 
     //divide range among procs
-    mpz_set_d(range_start, (global_range_limit/num_procs) * rank);
-    range_limit = (global_range_limit/num_procs) * (rank + 1);
+    mpz_set_d(range_start, range_size * rank);
+    range_limit = (rank == num_procs - 1) ? global_range_limit : range_size * (rank + 1);
 
     mpz_nextprime(current_prime, range_start);
     mpz_set(previous_prime, current_prime);
