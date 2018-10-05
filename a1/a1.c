@@ -92,8 +92,8 @@ int main(int argc, char **argv) {
             if (edge_diff > global_proc_diff_results[i].diff) {
                 if (edge_diff > global_max_diff) {
                     global_max_diff = edge_diff;
-                    global_max_prime1 = global_proc_diff_results[i+1].first_prime;
-                    global_max_prime2 = global_proc_diff_results[i].last_prime;
+                    global_max_prime1 = global_proc_diff_results[i].last_prime;
+                    global_max_prime2 = global_proc_diff_results[i+1].first_prime;
                 } 
             } else if (global_proc_diff_results[i].diff > global_max_diff) {
                 global_max_diff = global_proc_diff_results[i].diff;
