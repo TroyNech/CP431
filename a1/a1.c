@@ -1,6 +1,6 @@
 /* 
 * Authors: Troy Nechanicky, 150405860; Ben Ngan, 140567260; Alvin Yao, 150580680
-* Date: October 4, 2018
+* Date: October 5, 2018
 * 
 * Usage: num_procs a1 range_limit
 * Description: Finds the largest difference between 2 consecutive primes, within the range 0-$limit
