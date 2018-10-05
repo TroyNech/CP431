@@ -2,11 +2,12 @@
 * Authors: Troy Nechanicky, 150405860; Ben Ngan, 140567260; Alvin Yao, 150580680
 * Date: October 4, 2018
 * 
-* Usage: mpirun -np num_procs a1 range_limit
+* Usage: num_procs a1 range_limit
 * Description: Finds the largest difference between 2 consecutive primes, within the range 0-$limit
 * Limitations: 
 *   Assumes that there is at least 1 prime in each proc's range
 *   Assumes that the input is correct
+* Note: Needs to be compiled like 'mpicc a1.c -o a1.out $CPPFLAGS $LDFLAGS -lgmp -std=c99' on SHARCNET orca system
 */
 
 #include <gmp.h>
@@ -35,17 +36,7 @@ int main(int argc, char **argv) {
 
     double global_range_limit, range_limit, range_size;
     mpz_t range_start, first_prime, last_prime, current_prime, previous_prime, current_diff, max_diff, max_diff_prime1, max_diff_prime2;
- 
-    //mpz_inits doesn't work on orca SHARCNET cluster for some reason, so need to use mpz_init
-    mpz_init(range_start);
-    mpz_init(first_prime);
-    mpz_init(last_prime);
-    mpz_init(current_prime);
-    mpz_init(previous_prime);
-    mpz_init(current_diff);
-    mpz_init(max_diff);
-    mpz_init(max_diff_prime1);
-    mpz_init(max_diff_prime2);
+    mpz_inits(range_start, first_prime, last_prime, current_prime, previous_prime, current_diff, max_diff, max_diff_prime1, max_diff_prime2, NULL);
 
     global_range_limit = atof(argv[1]);
     range_size = floor(global_range_limit/num_procs);
@@ -82,17 +73,8 @@ int main(int argc, char **argv) {
     proc_diff_result.diff = mpz_get_d(max_diff);
     proc_diff_result.first_prime = mpz_get_d(first_prime);
     proc_diff_result.last_prime = mpz_get_d(last_prime);
-
-    //mpz_clears doesn't work on orca SHARCNET cluster for some reason, so need to use mpz_clear
-    mpz_clear(range_start);
-    mpz_clear(first_prime);
-    mpz_clear(last_prime);
-    mpz_clear(current_prime);
-    mpz_clear(previous_prime);
-    mpz_clear(current_diff);
-    mpz_clear(max_diff);
-    mpz_clear(max_diff_prime1);
-    mpz_clear(max_diff_prime2);
+    
+    mpz_clears(range_start, first_prime, last_prime, current_prime, previous_prime, current_diff, max_diff, max_diff_prime1, max_diff_prime2, NULL);
 
     //only master proc needs recv var
     if (rank == MASTER_PROC) {
