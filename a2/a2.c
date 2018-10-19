@@ -131,6 +131,7 @@ int main(int argc, char **argv) {
     double start_time = MPI_Wtime();
 
     //Each proc merge into their version of C (be aware that not all A partitions may have matching B partions)
+    //  Also case where all A < all B, such that no proc except master has B, and master must check for this special case after going through A-B merge step
 
     //MPI_GatherV procs Cs into master (will be ordered in recv array according to rank, so will be in order)
 
