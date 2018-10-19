@@ -10,6 +10,7 @@
 * Limitations: 
 *   Assumes that the input is correct
 *   Assumes that n=2^k, k is an integer
+* Compile like: mpicc a2.c -o a2 -std=c99 -lm
 */
 
 #include <math.h>
@@ -79,12 +80,13 @@ int main(int argc, char **argv) {
     MPI_Scatterv(j_arr, send_counts, displs, MPI_INT, j_arr, parts_per_proc + extra_parts + 1, MPI_INT, MASTER_PROC,
      MPI_COMM_WORLD);
 
-    //each proc finds size of its B partition
+    //each proc finds size of its B partition. Need to declare outside to avoid compiler warning
+    int b_size;
     if (rank == MASTER_PROC) {
-        int b_size = find_b_size(j_arr, 0, parts_per_proc + extra_parts);
+        b_size = find_b_size(j_arr, 0, parts_per_proc + extra_parts);
     } else {
         //pass start=1 b/c 0 is not part of proc's assigned set 
-        int b_size = find_b_size(j_arr, 1, parts_per_proc + 1);
+        b_size = find_b_size(j_arr, 1, parts_per_proc + 1);
     }
 
     //allocate A and B arrs
@@ -93,13 +95,13 @@ int main(int argc, char **argv) {
         b_arr = (int *) malloc(sizeof(int)*b_size);
     }
 
-    //master gets all B sizes
-    MPI_Gather(b_size, 1, MPI_INT, send_counts, 1, MPI_INT, MASTER_PROC, MPI_COMM_WORLD);
+    //master gets all B sizes, which is value of B to send to each proc
+    MPI_Gather(&b_size, 1, MPI_INT, send_counts, 1, MPI_INT, MASTER_PROC, MPI_COMM_WORLD);
 
     //displs[0] already set from the last Scatterv
     if (rank == MASTER_PROC) {
         for (int i = 1; i < num_procs; i++) {
-            displs[i] = displs[i-1] + b_size[i-1];
+            displs[i] = displs[i-1] + send_counts[i-1];
         }
     }
 
@@ -124,11 +126,9 @@ int main(int argc, char **argv) {
      MPI_COMM_WORLD);
 
     //wait for all processes to start before beginning for timing reasons
+    //declare start_time for all procs to avoid compiler warning later
     MPI_Barrier(MPI_COMM_WORLD);
-
-    if (rank == MASTER_PROC) {
-        double start_time = MPI_Wtime();
-    }
+    double start_time = MPI_Wtime();
 
     //Each proc merge into their version of C (be aware that not all A partitions may have matching B partions)
 
