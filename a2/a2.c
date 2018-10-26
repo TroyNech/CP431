@@ -1,13 +1,13 @@
-/* 
+/*
 * Authors: Troy Nechanicky, 150405860; Ben Ngan, 140567260; Alvin Yao, 150580680
 * Date: October 31, 2018
-* 
+*
 * Usage: a2 size
-* Description: 
+* Description:
 *   Generates 2 arrays of random numbers with size $size, sorts them, then merges them in parallel
 *   Merges using algorithm detailed at https://mylearningspace.wlu.ca/d2l/le/content/285513/viewContent/1586397/View
 *   Reports time taken to merge and outputs merged array (to stdout)
-* Limitations: 
+* Limitations:
 *   Assumes that the input is correct
 *   Assumes that n=2^k, k is an integer
 * Compile like: mpicc a2.c -o a2 -std=c99 -lm
@@ -44,8 +44,8 @@ int main(int argc, char **argv) {
     //vars for MPI_Scatterv
     int *j_arr, *a_arr, *b_arr, *send_counts, *displs;
 
-    send_counts = (int *) malloc(sizeof(int)*num_procs);
-    displs = (int *) malloc(sizeof(int)*num_procs);
+    send_counts = (int *) malloc(sizeof(int) * num_procs);
+    displs = (int *) malloc(sizeof(int) * num_procs);
 
     //assign remaining partitions to master proc
     send_counts[0] = parts_per_proc + extra_parts;
@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
     for (int i = 1; i < num_procs; i++) {
         //+1, -1 b/c need previous j value to calculate size of received array
         send_counts[i] = parts_per_proc + 1;
-        displs[i] = send_counts[i-1] + displs[i-1] - 1;
+        displs[i] = send_counts[i - 1] + displs[i - 1] - 1;
     }
 
     //master create and sort 2 arrays of random numbers with size og_arr_size
@@ -62,23 +62,23 @@ int main(int argc, char **argv) {
     if (rank == MASTER_PROC) {
         srand(time(NULL));
 
-        a_arr = (int *) malloc(sizeof(int)*og_arr_size);
-        b_arr = (int *) malloc(sizeof(int)*og_arr_size);
+        a_arr = (int *) malloc(sizeof(int) * og_arr_size);
+        b_arr = (int *) malloc(sizeof(int) * og_arr_size);
         fill_and_sort(a_arr, og_arr_size);
         fill_and_sort(b_arr, og_arr_size);
 
-        j_arr = (int *) malloc(sizeof(int)*r);
+        j_arr = (int *) malloc(sizeof(int) * r);
         find_j_set(a_arr, b_arr, og_arr_size, j_arr, r, k, num_elem_in_first_part);
     } else {
         //+1 b/c need previous j value to calculate size of received array
-        j_arr = (int *) malloc(sizeof(int)*parts_per_proc+1);
+        j_arr = (int *) malloc(sizeof(int) * parts_per_proc + 1);
     }
 
     //master distributes J set
     //use parts_per_proc + extra_parts + 1 for recvcount in case MASTER_PROC is receiving extra partitions
     // or if extra_parts = 0, +1 is for other procs to receive previous j element
     MPI_Scatterv(j_arr, send_counts, displs, MPI_INT, j_arr, parts_per_proc + extra_parts + 1, MPI_INT, MASTER_PROC,
-     MPI_COMM_WORLD);
+                 MPI_COMM_WORLD);
 
     //each proc finds size of its B partition. Need to declare outside to avoid compiler warning
     int b_size;
@@ -91,8 +91,8 @@ int main(int argc, char **argv) {
 
     //allocate A and B arrs
     if (rank != MASTER_PROC) {
-        a_arr = (int *) malloc(sizeof(int)*k*parts_per_proc);
-        b_arr = (int *) malloc(sizeof(int)*b_size);
+        a_arr = (int *) malloc(sizeof(int) * k * parts_per_proc);
+        b_arr = (int *) malloc(sizeof(int) * b_size);
     }
 
     //master gets all B sizes, which is value of B to send to each proc
@@ -101,13 +101,13 @@ int main(int argc, char **argv) {
     //displs[0] already set from the last Scatterv
     if (rank == MASTER_PROC) {
         for (int i = 1; i < num_procs; i++) {
-            displs[i] = displs[i-1] + send_counts[i-1];
+            displs[i] = displs[i - 1] + send_counts[i - 1];
         }
     }
 
     //master distributes B array
     MPI_Scatterv(b_arr, send_counts, displs, MPI_INT, b_arr, b_size, MPI_INT, MASTER_PROC,
-     MPI_COMM_WORLD);
+                 MPI_COMM_WORLD);
 
     //calculate send_counts to be the number of A elements each proc receives
     if (rank == MASTER_PROC) {
@@ -116,14 +116,14 @@ int main(int argc, char **argv) {
 
         for (int i = 1; i < num_procs; i++) {
             send_counts[i] = k;
-            displs[i] = send_counts[i-1] + displs[i-1];
+            displs[i] = send_counts[i - 1] + displs[i - 1];
         }
     }
 
     //master distributes A array
     //use num_elem_in_first_part as recv_count b/c all procs receive <= num_elem_in_first_part
     MPI_Scatterv(a_arr, send_counts, displs, MPI_INT, a_arr, num_elem_in_first_part, MPI_INT, MASTER_PROC,
-     MPI_COMM_WORLD);
+                 MPI_COMM_WORLD);
 
     //wait for all processes to start before beginning for timing reasons
     //declare start_time for all procs to avoid compiler warning later
@@ -133,43 +133,45 @@ int main(int argc, char **argv) {
     //Each proc merge into their version of C (be aware that not all A partitions may have matching B partions)
     //  Also case where all A < all B, such that no proc except master has B, and master must check for this special case after going through A-B merge step
 
-	  //Make c array with number of elements in each A + the number of values in b
-    int *c_arr = (int *) malloc(sizeof(int)*(send_counts[rank] * k + b_size));
-	  //All processes have a k values in the A array; except for master process
+    //Make c array with number of elements in each A + the number of values in b
+    int *c_arr = (int *) malloc(sizeof(int) * (send_counts[rank] * k + b_size));
+    //All processes have a k values in the A array; except for master process
     int a_index = 0, b_index = 0, c_index = 0, b_compute = 0; //iterators
 
-		//if b partition is empty then put whole A list in C
-		if(b_size == 0){
-			for(int i = 0; i < send_counts[rank] * k; i++){
-				c_arr[i] = a_arr[i];
-			}
-		}else{
-		//otherwise do sequential sort with given arrays; A has k elements, b has b_size elements
-    //iterate through each pair of partitions at a time; ie: a0, b0 --> a1, b1
-      for(int partitions_done = 0; partitions_done < send_counts[rank]; partitions_done++){
-        //j_arr[partitions_done+1]-j_arr[partitions_done] is number of b elements in this iteration
-        //+1 for current j value, start at 0 for last j value
-        if(j_arr[partitions_done + 1] == -1){
-          b_compute = j_arr[partitions_done]; //this way it will cancel out to 0 because there are no elements in this set
+    //if b partition is empty then put whole A list in C
+    if (b_size == 0) {
+        for (int i = 0; i < send_counts[rank] * k; i++) {
+            c_arr[i] = a_arr[i];
         }
-        b_compute = j_arr[partitions_done + 1] - j_arr[partitions_done];
-        if(b_compute == 0){ //if this b set is empty, then merge the a set as is
-          for(int i = 0; i < k; i++){
-    				c_arr[c_index+i] = a_arr[a_index+i];
-    			}
-        }else{ //otherwise do a normal sequential merge
-          while(c_index <= k + b_compute){
-            if(a_arr[a_index] <= b_arr[b_index]){
-              c_arr[c_index] = a_arr[a_index];
-              a_index++;
-            }else{
-              c_arr[c_index] = b_arr[b_index];
-              b_index++;
+    } else {
+        //otherwise do sequential sort with given arrays; A has k elements, b has b_size elements
+        //iterate through each pair of partitions at a time; ie: a0, b0 --> a1, b1
+        for (int partitions_done = 0; partitions_done < send_counts[rank]; partitions_done++) {
+            //j_arr[partitions_done+1]-j_arr[partitions_done] is number of b elements in this iteration
+            //+1 for current j value, start at 0 for last j value
+            if (j_arr[partitions_done + 1] == -1) {
+                b_compute = j_arr[partitions_done]; //this way it will cancel out to 0 because there are no elements in this set
             }
-            c_index++;
-          }
+            
+            b_compute = j_arr[partitions_done + 1] - j_arr[partitions_done];
+            
+            if (b_compute == 0) { //if this b set is empty, then merge the a set as is
+                for (int i = 0; i < k; i++) {
+                    c_arr[c_index + i] = a_arr[a_index + i];
+                }
+            } else { //otherwise do a normal sequential merge
+                while (c_index <= k + b_compute) {
+                    if (a_arr[a_index] <= b_arr[b_index]) {
+                        c_arr[c_index] = a_arr[a_index];
+                        a_index++;
+                    } else {
+                        c_arr[c_index] = b_arr[b_index];
+                        b_index++;
+                    }
+                    c_index++;
+                }
+            }
         }
-      }
     }
 
     //MPI_GatherV procs Cs into master (will be ordered in recv array according to rank, so will be in order)
@@ -197,8 +199,8 @@ void fill_and_sort(int *arr, long size) {
     qsort(arr, size, sizeof(int), comp);
 }
 
- //used by qsort
- //will result in ascending order
+//used by qsort
+//will result in ascending order
 int comp(const void *a, const void *b)
 {
     int *i = (int *) a;
@@ -218,7 +220,7 @@ void find_j_set(int *a_arr, int *b_arr, long og_arr_size, int *j_arr, long r, lo
         //no need to reset low var b/c searching for val > last low
         while (low < high) {
             mid = (low + high) / 2;
-            if (b_arr[mid] <= a_arr[num_elem_in_first_part + k*(j) - 1]) {
+            if (b_arr[mid] <= a_arr[num_elem_in_first_part + k * j - 1]) {
                 low = mid + 1;
             } else {
                 high = mid;
