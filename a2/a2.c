@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
 
     send_counts = (int *) malloc(sizeof(int)*num_procs);
     displs = (int *) malloc(sizeof(int)*num_procs);
-            
+
     //assign remaining partitions to master proc
     send_counts[0] = parts_per_proc + extra_parts;
     displs[0] = 0;
@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
     if (rank == MASTER_PROC) {
         b_size = find_b_size(j_arr, 0, parts_per_proc + extra_parts);
     } else {
-        //pass start=1 b/c 0 is not part of proc's assigned set 
+        //pass start=1 b/c 0 is not part of proc's assigned set
         b_size = find_b_size(j_arr, 1, parts_per_proc + 1);
     }
 
@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
     if (rank == MASTER_PROC) {
         send_counts[0] = num_elem_in_first_part;
         //displs[0] already set
-        
+
         for (int i = 1; i < num_procs; i++) {
             send_counts[i] = k;
             displs[i] = send_counts[i-1] + displs[i-1];
@@ -133,6 +133,45 @@ int main(int argc, char **argv) {
     //Each proc merge into their version of C (be aware that not all A partitions may have matching B partions)
     //  Also case where all A < all B, such that no proc except master has B, and master must check for this special case after going through A-B merge step
 
+	  //Make c array with number of elements in each A + the number of values in b
+    int *c_arr = (int *) malloc(sizeof(int)*(send_counts[rank] * k + b_size));
+	  //All processes have a k values in the A array; except for master process
+    int a_index = 0, b_index = 0, c_index = 0, b_compute = 0; //iterators
+
+		//if b partition is empty then put whole A list in C
+		if(b_size == 0){
+			for(int i = 0; i < send_counts[rank] * k; i++){
+				c_arr[i] = a_arr[i];
+			}
+		}else{
+		//otherwise do sequential sort with given arrays; A has k elements, b has b_size elements
+    //iterate through each pair of partitions at a time; ie: a0, b0 --> a1, b1
+      for(int partitions_done = 0; partitions_done < send_counts[rank]; partitions_done++){
+        //j_arr[partitions_done+1]-j_arr[partitions_done] is number of b elements in this iteration
+        //+1 for current j value, start at 0 for last j value
+        if(j_arr[partitions_done + 1] == -1){
+          b_compute = j_arr[partitions_done]; //this way it will cancel out to 0 because there are no elements in this set
+        }
+        b_compute = j_arr[partitions_done + 1] - j_arr[partitions_done];
+        if(b_compute == 0){ //if this b set is empty, then merge the a set as is
+          for(int i = 0; i < k; i++){
+    				c_arr[c_index+i] = a_arr[a_index+i];
+    			}
+        }else{ //otherwise do a normal sequential merge
+          while(c_index <= k + b_compute){
+            if(a_arr[a_index] <= b_arr[b_index]){
+              c_arr[c_index] = a_arr[a_index];
+              a_index++;
+            }else{
+              c_arr[c_index] = b_arr[b_index];
+              b_index++;
+            }
+            c_index++;
+          }
+        }
+      }
+    }
+
     //MPI_GatherV procs Cs into master (will be ordered in recv array according to rank, so will be in order)
 
     if (rank == MASTER_PROC) {
@@ -143,7 +182,7 @@ int main(int argc, char **argv) {
 
         //Master output C
     }
-    
+
     MPI_Finalize();
 
     return EXIT_SUCCESS;
@@ -192,12 +231,12 @@ void find_j_set(int *a_arr, int *b_arr, long og_arr_size, int *j_arr, long r, lo
     }
 }
 
-int find_b_size(int *j_arr, long start, long end) {   
+int find_b_size(int *j_arr, long start, long end) {
     //find last B partition
     while (end > start - 1 && j_arr[end] == -1) {
         end--;
     }
-    
+
     //size is 0 if no B partitions, else equal to the number of elements between
     //use start var instead of 0 b/c start is 0 for master and 1 for others (element 0 not assigned to them)
     int b_size = (end == start - 1) ? 0 : j_arr[end] - j_arr[0] + 1;
