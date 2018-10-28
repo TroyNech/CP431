@@ -44,16 +44,17 @@ int main(int argc, char **argv) {
     long num_proc_parts = (rank == MASTER_PROC) ? r / num_procs + r % num_procs : r / num_procs;
     long num_elem_in_first_part = k;
 
-    //master needs to know how many partitions the other procs
+    
     //declare outside to avoid compiler error
     long num_other_proc_parts;
     if (rank == MASTER_PROC) {
+        //master needs to know how many partitions the other procs
         num_other_proc_parts = r / num_procs;
-    }
 
-    //master's first partition may have less elements if doesn't divide evenly
-    if (rank == MASTER_PROC && og_arr_size % r != 0) {
-        num_elem_in_first_part = og_arr_size % r;
+        //master's first partition may have less elements if doesn't divide evenly
+        if (og_arr_size % k != 0) {
+            num_elem_in_first_part = og_arr_size % k;
+        }
     }
 
     //vars for MPI_Scatterv
@@ -95,8 +96,11 @@ int main(int argc, char **argv) {
         //middle A part has no corresponding B part
         // int a[] = {5, 6, 6, 7, 9, 14, 14, 19};
         // int b[] = {1, 3, 4, 6, 6, 13, 15, 19};
-        //a_arr = a;
-        //b_arr = b;
+        //
+        // int a[] = {0, 1, 3, 5, 6, 6, 6, 7, 8, 10, 11, 13, 13, 15, 15, 16, 16, 18, 21, 21, 23, 23, 23, 25, 27, 27, 28, 29, 29, 30, 30, 31};
+        // int b[] = {1, 1, 2, 3, 3, 3, 4, 4, 5, 5, 6, 6, 6, 10, 13, 14, 15, 16, 17, 18, 19, 20, 20, 22, 23, 25, 27, 28, 29, 29, 30, 31};
+        // a_arr = a;
+        // b_arr = b;
 
         a_arr = (int *) malloc(sizeof(int) * og_arr_size);
         b_arr = (int *) malloc(sizeof(int) * og_arr_size);
