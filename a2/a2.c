@@ -227,6 +227,9 @@ int main(int argc, char **argv) {
     int c_size = num_elem_in_first_part + k * (num_proc_parts - 1) + b_size;
 
     if (rank == MASTER_PROC) {
+        //send_counts no longer used
+        free(send_counts);
+
         c_arr = (int *) malloc(sizeof(int) * og_arr_size * 2); //master needs to be able to store entire C array
     } else {
         c_arr = (int *) malloc(sizeof(int) * c_size);
