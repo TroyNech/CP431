@@ -6,7 +6,7 @@
 * Description:
 *   Generates 2 arrays of random numbers with size $size, sorts them, then merges them in parallel
 *   Merges using algorithm detailed at https://mylearningspace.wlu.ca/d2l/le/content/285513/viewContent/1586397/View
-*   Reports time taken to merge and outputs merged array (to stdout)
+*   Reports time taken to merge and outputs arrays (to stdout)
 * Limitations:
 *   Assumes that the input is correct
 *   Assumes that n=2^k, k is an integer
@@ -62,7 +62,6 @@ int main(int argc, char **argv) {
     long *j_arr;
 
     if (rank == MASTER_PROC) {
-
         send_counts = (int *) malloc(sizeof(int) * num_procs);
         displs = (int *) malloc(sizeof(int) * num_procs);
 
@@ -78,29 +77,8 @@ int main(int argc, char **argv) {
 
     //master create and sort 2 arrays of random numbers with size og_arr_size
     //then find J set
-   // if (rank == MASTER_PROC) {
+    if (rank == MASTER_PROC) {
         srand(time(NULL));
-        
-        //all A > B
-        // int a[] = {11, 12, 13, 14};
-        // int b[] = {1, 2, 3, 4};
-        //all B > A
-        //int a[] = {1, 2, 3, 4};
-        //int b[] = {11, 12, 13, 14};
-        //extra master parts and less first elements
-        //int a[] = {1, 3, 7, 8, 9, 10, 15, 18};
-        //int b[] = {0, 2, 3, 5, 5, 19, 20, 120};
-        //exactly 1 B part
-        //int a[] = {11, 12, 13, 14};
-        //int b[] = {1, 2, 15, 16};
-        //middle A part has no corresponding B part
-        // int a[] = {5, 6, 6, 7, 9, 14, 14, 19};
-        // int b[] = {1, 3, 4, 6, 6, 13, 15, 19};
-        //
-        // int a[] = {0, 1, 3, 5, 6, 6, 6, 7, 8, 10, 11, 13, 13, 15, 15, 16, 16, 18, 21, 21, 23, 23, 23, 25, 27, 27, 28, 29, 29, 30, 30, 31};
-        // int b[] = {1, 1, 2, 3, 3, 3, 4, 4, 5, 5, 6, 6, 6, 10, 13, 14, 15, 16, 17, 18, 19, 20, 20, 22, 23, 25, 27, 28, 29, 29, 30, 31};
-        // a_arr = a;
-        // b_arr = b;
 
         a_arr = (int *) malloc(sizeof(int) * og_arr_size);
         b_arr = (int *) malloc(sizeof(int) * og_arr_size);
@@ -109,40 +87,18 @@ int main(int argc, char **argv) {
 
         j_arr = (long *) malloc(sizeof(long) * r);
         find_j_set(a_arr, b_arr, og_arr_size, j_arr, r, k, num_elem_in_first_part);
-
-/*          printf("\nA:\n");
-        for (int i = 0; i < og_arr_size; i++) {
-            printf("%d, ", a_arr[i]);
-        }
-
-        printf("\n\nB:\n");
-        for (int i = 0; i < og_arr_size; i++) {
-            printf("%d, ", b_arr[i]);
-        }
-
-        printf("\n\nJ\n");
-        for (int i = 0; i < r; i++) {
-            printf("%d, ", j_arr[i]);
-        }
-
-        printf("\n");  */
     } else {
-        //+1 element b/c need previous j value to calculate size of received array
+        //+1 element b/c need previous valid j value to calculate size of received array
         j_arr = (long *) malloc(sizeof(long) * num_proc_parts + sizeof(long));
     }
 
-     //master distributes J set
+    //master distributes J set
     //MPI_IN_PLACE so that master doesn't send to itself (avoids error of using j_arr as send and recv buffer)
     if (rank == MASTER_PROC) {
-/*           for (int i = 0; i < num_procs; i++) {
-            printf("%d ", send_counts[i]);
-            printf("%d ", displs[i]);
-        }
-        printf("%d %d", num_proc_parts, num_other_proc_parts); */
         MPI_Scatterv(j_arr, send_counts, displs, MPI_LONG, MPI_IN_PLACE, num_proc_parts, MPI_LONG, MASTER_PROC,
                     MPI_COMM_WORLD);
     }
-    //+1 is for procs to receive previous j element 
+    //+1 is for procs to receive previous valid j value 
     else {
         MPI_Scatterv(NULL, NULL, NULL, MPI_LONG, j_arr, num_proc_parts + 1, MPI_LONG, MASTER_PROC,
                     MPI_COMM_WORLD);
@@ -152,11 +108,9 @@ int main(int argc, char **argv) {
     int b_size;
     if (rank == MASTER_PROC) {
         b_size = find_b_size(j_arr, 0, num_proc_parts - 1, rank);
-//        printf("\nb_size0:%d", b_size);
     } else {
         //pass start=1 b/c 0 is not part of proc's assigned set
         b_size = find_b_size(j_arr, 1, num_proc_parts, rank);
- //       printf("\nb_size1:%d", b_size);
     }
 
     //allocate A and B arrs
@@ -164,7 +118,6 @@ int main(int argc, char **argv) {
         a_arr = (int *) malloc(sizeof(int) * k * num_proc_parts);
         b_arr = (int *) malloc(sizeof(int) * b_size);
     }
-
     
     if (rank == MASTER_PROC) {
         //calculate send_counts to be the number of A elements each proc receives
@@ -199,18 +152,8 @@ int main(int argc, char **argv) {
         //displs[0] already set from the last Scatterv
         for (int i = 1; i < num_procs; i++) {
             displs[i] = displs[i - 1] + send_counts[i - 1];
-   //         printf("\ndispls[1]:%d", displs[i]);
         }
     
-/*         for (int i = 0; i < num_procs; i++) {
-            printf("%d ", send_counts[i]);
-            printf("%d ", displs[i]);
-        }
-        printf("%d ", b_size); */
-/*         printf("\n\nB:%d\n", b_arr);
-        for (int i = 0; i < og_arr_size; i++) {
-            printf("%d, ", b_arr[i]);
-        } */
         //master distributes B array
         //MPI_IN_PLACE so that master doesn't send to itself (avoids error of using b_arr as send and recv buffer)
         MPI_Scatterv(b_arr, send_counts, displs, MPI_INT, MPI_IN_PLACE, b_size, MPI_INT, MASTER_PROC, MPI_COMM_WORLD);
@@ -230,7 +173,8 @@ int main(int argc, char **argv) {
         //send_counts no longer used
         free(send_counts);
 
-        c_arr = (int *) malloc(sizeof(int) * og_arr_size * 2); //master needs to be able to store entire C array
+        //master needs to be able to store entire C array
+        c_arr = (int *) malloc(sizeof(int) * og_arr_size * 2);
     } else {
         c_arr = (int *) malloc(sizeof(int) * c_size);
     }
@@ -253,20 +197,6 @@ int main(int argc, char **argv) {
         //MPI_IN_PLACE so that master doesn't send to itself (avoids error of using c_arr as send and recv buffer)
         MPI_Gatherv(MPI_IN_PLACE, c_size, MPI_INT, c_arr, recv_counts, displs, MPI_INT, MASTER_PROC, MPI_COMM_WORLD);
     } else {
-        /* printf("\nA:\n");
-        for (int i = 0; i < k * num_proc_parts; i++) {
-            printf("%d, ", a_arr[i]);
-        }
-
-        printf("\nB:\n");
-        for (int i = 0; i < b_size; i++) {
-            printf("%d, ", b_arr[i]);
-        }
-
-        printf("\nC:\n");
-         for (int i = 0; i < c_size; i++) {
-            printf("%d, ", c_arr[i]);
-        }   */
         MPI_Gatherv(c_arr, c_size, MPI_INT, NULL, recv_counts, displs, MPI_INT, MASTER_PROC, MPI_COMM_WORLD);
     }
 
@@ -274,7 +204,7 @@ int main(int argc, char **argv) {
         double end_time = MPI_Wtime();
         double elapsed_seconds = end_time - start_time;
 
-        printf("\nTook %.2f seconds\n", elapsed_seconds);
+        printf("\nTook %.2f seconds to merge arrays\n", elapsed_seconds);
 
         output_arr(a_arr, og_arr_size, "A:");
         output_arr(b_arr, og_arr_size, "B:");
@@ -316,14 +246,13 @@ void find_j_set(int *a_arr, int *b_arr, long og_arr_size, long *j_arr, long r, l
         //no need to reset low var b/c searching for val > last low
         while (low < high) {
             mid = (low + high) / 2;
-          //  printf("\nb_arr[%d]=%d <= a_arr[%d]=%d:\n", mid, b_arr[mid], num_elem_in_first_part + k * j - 1, a_arr[num_elem_in_first_part + k * j - 1]);
+
             if (b_arr[mid] <= a_arr[num_elem_in_first_part + k * j - 1]) {
                 low = mid + 1;
             } else {
                 high = mid;
             }
         }
-        //printf("\nlow: %d high: %d\n", low, high);
 
         //low increments if acceptable value found and so will not equal prev_low
         //will give last_valid_j in case that first available B value is > A[k*(j+1)]
@@ -370,7 +299,6 @@ void merge_arrays(int *a_arr, int *b_arr, int *c_arr, long *j_arr, long num_proc
 
         //know that a_index won't go out of bounds because of how b is partitioned
         while (b_index <= b_part_end) {
-          //  printf("rank: %d a_part_end:%d b_index:%d a_index: %d j_arr[current_part]: %d\n", rank, a_part_end, b_index, a_index, j_arr[j_index]);
             if (a_arr[a_index] < b_arr[b_index]) {
                 c_arr[c_index] = a_arr[a_index];
                 a_index++;
@@ -382,15 +310,10 @@ void merge_arrays(int *a_arr, int *b_arr, int *c_arr, long *j_arr, long num_proc
             c_index++;
         }
 
-        if (rank != MASTER_PROC) {
-          //  printf("\na_index:%d, a_part_end:%d, b_index:%d, b_part_end:%d, c_index:%d\n", a_index, a_part_end, b_index, b_part_end, c_index);
-        }
-
         //merge all remaining a part. elements
         if (a_index <= a_part_end) {
-            //printf("\nMerging %d - %d into c at %d\n", a_index, a_part_end, c_index);
             append_array(a_arr, c_arr, a_index, a_part_end, c_index);
-           // for (int i )
+            
             c_index += a_part_end - a_index + 1;
             a_index = a_part_end + 1;
         }
