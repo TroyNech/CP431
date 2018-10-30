@@ -208,6 +208,19 @@ int main(int argc, char **argv) {
         output_arr(a_arr, og_arr_size, "A:");
         output_arr(b_arr, og_arr_size, "B:");
         output_arr(c_arr, og_arr_size * 2, "C:");
+
+        printf("\nChecking C for correctness...\n");
+
+        long current = 1;
+        for (long prev = 0; current < 2 * og_arr_size; prev++, current++) {
+            if (c_arr[prev] > c_arr[current]) break;
+        }
+
+        if (current == 2 * og_arr_size) {
+            printf("Merged list C not in order\n\n");
+        } else {
+            printf("Merged list C is in order\n\n");
+        }
     }
 
     MPI_Finalize();
