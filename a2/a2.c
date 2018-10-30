@@ -212,7 +212,7 @@ int main(int argc, char **argv) {
             if (c_arr[prev] > c_arr[current]) break;
         }
 
-        if (current == 2 * og_arr_size) {
+        if (current != 2 * og_arr_size) {
             printf("Merged list C not in order\n\n");
         } else {
             printf("Merged list C is in order\n\n");
