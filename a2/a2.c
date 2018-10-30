@@ -204,11 +204,7 @@ int main(int argc, char **argv) {
         double elapsed_seconds = end_time - start_time;
 
         printf("\nTook %.2f seconds to merge arrays\n", elapsed_seconds);
-
-        output_arr(a_arr, og_arr_size, "A:");
-        output_arr(b_arr, og_arr_size, "B:");
         output_arr(c_arr, og_arr_size * 2, "C:");
-
         printf("\nChecking C for correctness...\n");
 
         long current = 1;
