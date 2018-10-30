@@ -73,13 +73,12 @@ int main(int argc, char **argv) {
             //+1, -1 b/c need previous j value to calculate size of received array
             send_counts[i] = num_other_proc_parts + 1;
             displs[i] = send_counts[i - 1] + displs[i - 1] - 1;
-        }
+        }  
 
-    //master create and sort 2 arrays of random numbers with size og_arr_size
-    //then find J set
-    if (rank == MASTER_PROC) {
+        //seed for rand() calls in fill_and_sort
         srand(time(NULL));
 
+        //master create and sort 2 arrays of random numbers with size og_arr_size
         a_arr = (int *) malloc(sizeof(int) * og_arr_size);
         b_arr = (int *) malloc(sizeof(int) * og_arr_size);
         fill_and_sort(a_arr, og_arr_size);
@@ -134,7 +133,7 @@ int main(int argc, char **argv) {
         MPI_Scatterv(a_arr, send_counts, displs, MPI_INT, MPI_IN_PLACE, num_elem_in_first_part + (num_proc_parts - 1) * k,
                     MPI_INT, MASTER_PROC, MPI_COMM_WORLD);
     } else {
-        MPI_Scatterv(NULL, send_counts, displs, MPI_INT, a_arr, num_elem_in_first_part + (num_proc_parts - 1) * k,
+        MPI_Scatterv(NULL, NULL, NULL, MPI_INT, a_arr, num_elem_in_first_part + (num_proc_parts - 1) * k,
                     MPI_INT, MASTER_PROC, MPI_COMM_WORLD);
     }
 
@@ -197,7 +196,7 @@ int main(int argc, char **argv) {
         //MPI_IN_PLACE so that master doesn't send to itself (avoids error of using c_arr as send and recv buffer)
         MPI_Gatherv(MPI_IN_PLACE, c_size, MPI_INT, c_arr, recv_counts, displs, MPI_INT, MASTER_PROC, MPI_COMM_WORLD);
     } else {
-        MPI_Gatherv(c_arr, c_size, MPI_INT, NULL, recv_counts, displs, MPI_INT, MASTER_PROC, MPI_COMM_WORLD);
+        MPI_Gatherv(c_arr, c_size, MPI_INT, NULL, NULL, NULL, MPI_INT, MASTER_PROC, MPI_COMM_WORLD);
     }
 
     if (rank == MASTER_PROC) {
@@ -313,7 +312,7 @@ void merge_arrays(int *a_arr, int *b_arr, int *c_arr, long *j_arr, long num_proc
         //merge all remaining a part. elements
         if (a_index <= a_part_end) {
             append_array(a_arr, c_arr, a_index, a_part_end, c_index);
-            
+
             c_index += a_part_end - a_index + 1;
             a_index = a_part_end + 1;
         }
