@@ -9,15 +9,17 @@ typedef struct colour {
     float red, green, blue;
 } colour;
 
-#define colour1 {1, 1, 1}
-#define colour2 {1, 1, 1}
-#define colour3 {1, 1, 1}
-#define colour4 {1, 1, 1}
-#define colour5 {1, 1, 1}
-#define colour6 {1, 1, 1}
-#define colour7 {1, 1, 1}
-#define colour8 {1, 1, 1}
-#define colour9 {1, 1, 1}
-#define colour10 {1, 1, 1}
+#define COLOUR1 {1, 1, 1}
+#define COLOUR2 {1, 1, 1}
+#define COLOUR3 {1, 1, 1}
+#define COLOUR4 {1, 1, 1}
+#define COLOUR5 {1, 1, 1}
+#define COLOUR6 {1, 1, 1}
+#define COLOUR7 {1, 1, 1}
+#define COLOUR8 {1, 1, 1}
+#define COLOUR9 {1, 1, 1}
+#define COLOUR10 {1, 1, 1}
 
-const colour colours[10] = {colour1, colour2, colour3, colour4, colour5, colour6, colour7, colour8, colour9, colour10};
+#define COLOURS_SIZE 10
+
+const colour COLOURS[10] = {COLOUR1, COLOUR2, COLOUR3, COLOUR4, COLOUR5, COLOUR6, COLOUR7, COLOUR8, COLOUR9, COLOUR10};

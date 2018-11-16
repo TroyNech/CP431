@@ -42,8 +42,8 @@ int main(int argc, char **argv) {
     int num_rows = rank * floor(GLBL_NUM_ROWS/num_procs) + fmin(rank, GLBL_NUM_ROWS%num_procs);
     
     //allocate array for pixels each proc with process. Master needs to be able to collect all pixels
-    colour **pixels = (rank == MASTER_PROC) ? (colour **) malloc(sizeof(colour) * GLBL_NUM_ROWS * GLBL_NUM_COLS) :
-     (colour **) malloc(sizeof(colour) * num_rows * GLBL_NUM_COLS);
+    colour *pixels = (rank == MASTER_PROC) ? (colour *) malloc(GLBL_NUM_ROWS * GLBL_NUM_COLS * sizeof(colour)) :
+     (colour *) malloc(num_rows * GLBL_NUM_COLS * sizeof(colour));
 
     //start at top left point in procs range
     double complex grid_point = 0 + (rank * floor(GLBL_NUM_ROWS/num_procs) + fmin(rank, GLBL_NUM_ROWS%num_procs))*I;
@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
     //calculate pixel colour for each point in proc's range
     for (int pixel_row = 0; pixel_row < num_rows; pixel_row++) {
         for (grid_point = 0 + cimag(grid_point)*I; creal(grid_point) < GLBL_NUM_COLS; grid_point += 1) {
-            pixels[pixel_row][(int) creal(grid_point)] = calc_colour(c, grid_point);
+            pixels[pixel_row * GLBL_NUM_COLS + (int) creal(grid_point)] = calc_colour(c, grid_point);
         }
         grid_point+= 1*I;
     }
@@ -102,7 +102,7 @@ colour calc_colour(double complex c, double complex z0) {
     }
 
     //0<=orb_point_count<=5 -> colour = 0, ..., 46<=orb_point_count<=50 -> colour = 10
-    int colour = ceil(orb_point_count / (ORB_COUNT_MAX / sizeof(colours))) - 1;
+    int colour = ceil(orb_point_count / (ORB_COUNT_MAX / COLOURS_SIZE)) - 1;
     
-    return colours[colour];
+    return COLOURS[colour];
 }
