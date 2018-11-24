@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
         gluOrtho2D(0.0, GLBL_NUM_COLS, GLBL_NUM_ROWS, 0.0);
         
         int iterator = 0;
-        int r,g,b = 0;
+        float r,g,b = 0;
         for (int i = 0; i < GLBL_NUM_COLS; i++){
           for (int j = 0 ; j < GLBL_NUM_ROWS; j++){
             r = pixels[iterator].red;
