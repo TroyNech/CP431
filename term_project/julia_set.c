@@ -5,7 +5,7 @@
 * Usage: julia_set c_real c_imag
 * Description:
 *   Displays an image of the Julia set for z^2 + c using points from (0,0) to (1000,1000)
-* Compile like: mpicc julia_set.c -o julia_set -std=c99 -lm
+* Compile like: mpicc julia_set.c -o julia_set -std=c99 -lm -lglut -lGLU
 */
 
 #include <complex.h>
@@ -15,6 +15,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <glut.h>
+#include <gl.h>
 
 #define MASTER_PROC 0
 #define GLBL_NUM_ROWS 1000
@@ -40,7 +42,7 @@ int main(int argc, char **argv) {
 
     //divide rows among procs
     int num_rows = rank * floor(GLBL_NUM_ROWS/num_procs) + fmin(rank, GLBL_NUM_ROWS%num_procs);
-    
+
     //allocate array for pixels each proc with process. Master needs to be able to collect all pixels
     colour *pixels = (rank == MASTER_PROC) ? (colour *) malloc(GLBL_NUM_ROWS * GLBL_NUM_COLS * sizeof(colour)) :
      (colour *) malloc(num_rows * GLBL_NUM_COLS * sizeof(colour));
@@ -67,7 +69,7 @@ int main(int argc, char **argv) {
         for (int i = 1; i < num_procs; i++) {
             recv_counts[i] =  i * floor(GLBL_NUM_ROWS/num_procs) + fmin(i, GLBL_NUM_ROWS%num_procs) * 3;
             displs[i] = recv_counts[i-1] + displs[i-1];
-        }        
+        }
 
         //gather procs' pixel arrays into master
         //will be ordered in recv array (master's pixel array) according to rank, so will be in order
@@ -82,10 +84,32 @@ int main(int argc, char **argv) {
         double elapsed_seconds = end_time - start_time;
 
         printf("\nTook %.3f seconds to calculate the Julia set\n\n", elapsed_seconds);
+
+        glutInit(&argc, argv);
+        glutInitDisplayMode(GLUT_DOUBLE);
+        glutInitWindowSize(GLBL_NUM_COLS, GLBL_NUM_ROWS);
+        glutCreateWindow("Julia Sets");
+
+        glClearColor(1.0, 1.0, 1.0, 0.0);
+        glMatrixMode(GL_PROJECTION);
+        gluOrtho2D(0.0, GLBL_NUM_COLS, GLBL_NUM_ROWS, 0.0);
         
-        //opengl part
-    }    
-   
+        int iterator = 0;
+        int r,g,b = 0;
+        for (int i = 0; i < GLBL_NUM_COLS; i++){
+          for (int j = 0 ; j < GLBL_NUM_ROWS; j++){
+            r = pixels[iterator].red;
+            g = pixels[iterator].green;
+            b = pixels[iterator].blue;
+	    glBegin(GL_POINTS);
+            glColor3f(r,g,b);
+            glVertex2i(i,j);
+	    glEnd();
+            iterator++;
+          }
+        }
+    }
+
     MPI_Finalize();
 
     return EXIT_SUCCESS;
@@ -103,6 +127,6 @@ colour calc_colour(double complex c, double complex z0) {
 
     //0<=orb_point_count<=5 -> colour = 0, ..., 46<=orb_point_count<=50 -> colour = 10
     int colour = ceil(orb_point_count / (ORB_COUNT_MAX / COLOURS_SIZE)) - 1;
-    
+
     return COLOURS[colour];
 }
