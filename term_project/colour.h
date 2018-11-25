@@ -9,7 +9,7 @@ typedef struct colour {
     float red, green, blue;
 } colour;
 
-#define COLOUR1 {1, 1, 1}
+#define COLOUR1 {0.5, 1, 1}
 #define COLOUR2 {1, 1, 1}
 #define COLOUR3 {1, 1, 1}
 #define COLOUR4 {1, 1, 1}
@@ -18,7 +18,7 @@ typedef struct colour {
 #define COLOUR7 {1, 1, 1}
 #define COLOUR8 {1, 1, 1}
 #define COLOUR9 {1, 1, 1}
-#define COLOUR10 {1, 1, 1}
+#define COLOUR10 {1, 0, 0}
 
 #define COLOURS_SIZE 10
 
