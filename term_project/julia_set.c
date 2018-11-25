@@ -17,8 +17,6 @@
 #include <time.h>
 #include "GL/glut.h"
 #include "GL/gl.h"
-//#include <iostream>
-//#include <fstream>
 
 #define MASTER_PROC 0
 #define GLBL_NUM_ROWS 1000
@@ -26,7 +24,8 @@
 #define RADIUS_LIMIT 2
 #define ORB_COUNT_MAX 50
 
-colour calc_colour(double complex c, double complex z0);
+colour calc_colour(double complex c, double complex grid_point);
+double complex map_point(double complex grid_point);
 void create_julia_set_image(colour *pixels, int argc, char **argv);
 
 int main(int argc, char **argv) {
@@ -47,18 +46,18 @@ int main(int argc, char **argv) {
     int num_rows = floor(GLBL_NUM_ROWS / num_procs) + fmin(rank, GLBL_NUM_ROWS % num_procs);
 
     //allocate array for pixels each proc with process. Master needs to be able to collect all pixels
-    colour *pixels = (rank == MASTER_PROC) ? (colour *) malloc(GLBL_NUM_ROWS * GLBL_NUM_COLS * sizeof(colour)) :
-     (colour *) malloc(num_rows * GLBL_NUM_COLS * sizeof(colour));
+    colour *pixels = (rank == MASTER_PROC) ? (colour *) malloc(GLBL_NUM_ROWS * GLBL_NUM_COLS * sizeof(colour)) 
+        : (colour *) malloc(num_rows * GLBL_NUM_COLS * sizeof(colour));
 
     //start at top left point in procs range
-    double complex grid_point = 0 + (rank * floor(GLBL_NUM_ROWS/num_procs) + fmin(rank, GLBL_NUM_ROWS%num_procs))*I;
+    double complex grid_point = 0 + (rank * floor(GLBL_NUM_ROWS / num_procs) + fmin(rank, GLBL_NUM_ROWS % num_procs))*I;
 
     //calculate pixel colour for each point in proc's range
     for (int pixel_row = 0; pixel_row < num_rows; pixel_row++) {
         for (grid_point = 0 + cimag(grid_point)*I; creal(grid_point) < GLBL_NUM_COLS; grid_point += 1) {
             pixels[pixel_row * GLBL_NUM_COLS + (int) creal(grid_point)] = calc_colour(c, grid_point);
         }
-        grid_point+= 1*I;
+        grid_point += 1*I;
     }
 
     if (rank == MASTER_PROC) {
@@ -79,7 +78,7 @@ int main(int argc, char **argv) {
         //MPI_IN_PLACE so that master doesn't send to itself (avoids error of using pixel array as send and recv buffer)
         MPI_Gatherv(MPI_IN_PLACE, recv_counts[0], MPI_FLOAT, pixels, recv_counts, displs, MPI_FLOAT, MASTER_PROC, MPI_COMM_WORLD);
     } else {
-        MPI_Gatherv(pixels, sizeof(pixels), MPI_FLOAT, NULL, NULL, NULL, MPI_FLOAT, MASTER_PROC, MPI_COMM_WORLD);
+        MPI_Gatherv(pixels, num_rows * GLBL_NUM_COLS * 3, MPI_FLOAT, NULL, NULL, NULL, NULL, MASTER_PROC, MPI_COMM_WORLD);
     }
 
     if (rank == MASTER_PROC) {
@@ -89,6 +88,7 @@ int main(int argc, char **argv) {
         printf("\nTook %.3f seconds to calculate the Julia set\n\n", elapsed_seconds);
 
         create_julia_set_image(pixels, argc, argv);
+        scanf("%d", rank);
     }
 
     MPI_Finalize();
@@ -97,11 +97,12 @@ int main(int argc, char **argv) {
 }
 
 //colour based on exit time when calculating orbit of z0
-colour calc_colour(double complex c, double complex z0) {
+colour calc_colour(double complex c, double complex grid_point) {
     int orb_point_count = 0;
-    double complex z = cpow(z0, 2) + c;
+    double complex z  = map_point(grid_point);
+    z = cpow(z, 2) + c;
 
-    while (orb_point_count < ORB_COUNT_MAX && cabs(z - z0) <= RADIUS_LIMIT) {
+    while (orb_point_count < ORB_COUNT_MAX && cabs(z) <= RADIUS_LIMIT) {
         orb_point_count++;
         z = cpow(z, 2) + c;
     }
@@ -112,9 +113,19 @@ colour calc_colour(double complex c, double complex z0) {
     return COLOURS[colour];
 }
 
+//normalize grid_point to be between -2 and 2 (both x and y)
+double complex map_point(double complex grid_point) {
+    int l = fmin(GLBL_NUM_COLS, GLBL_NUM_ROWS);
+
+    double real = 2 * RADIUS_LIMIT * (creal(grid_point) - GLBL_NUM_COLS / 2.0) / l;
+    double imag = 2 * RADIUS_LIMIT * (cimag(grid_point) - GLBL_NUM_ROWS / 2.0) / l;
+
+    return real + imag*I;
+}
+
 void create_julia_set_image(colour *pixels, int argc, char **argv) {
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
     glutInitWindowSize(GLBL_NUM_COLS, GLBL_NUM_ROWS);
     glutCreateWindow("Julia Sets");
 
@@ -124,7 +135,7 @@ void create_julia_set_image(colour *pixels, int argc, char **argv) {
     glLoadIdentity();
     glEnable(GL_DEPTH_TEST);
     gluOrtho2D(0.0, GLBL_NUM_COLS, GLBL_NUM_ROWS, 0.0);
-    
+
     int iterator = 0;
     float r, g, b = 0;
     for (int i = 0; i < GLBL_NUM_COLS; i++) {
@@ -139,6 +150,8 @@ void create_julia_set_image(colour *pixels, int argc, char **argv) {
             iterator++;
         }
     }
+
+    glFlush();
 
     //SaveBitmap("output.bmp", 0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS);
 }
