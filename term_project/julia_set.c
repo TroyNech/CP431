@@ -5,7 +5,7 @@
 * Usage: julia_set c_real c_imag
 * Description:
 *   Displays an image of the Julia set for z^2 + c using points from (0,0) to (1000,1000)
-* Compile like: mpicc julia_set.c -o julia_set -std=c99 -lm -lglut -lGLU
+* Compile like: mpicc julia_set.c -o julia_set -std=c99 -lm -lglut -lGL -lGLU
 */
 
 #include <complex.h>
@@ -27,7 +27,7 @@
 #define ORB_COUNT_MAX 50
 
 colour calc_colour(double complex c, double complex z0);
-create_julia_set_image(colour *pixels, int argc, char **argv);
+void create_julia_set_image(colour *pixels, int argc, char **argv);
 
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
     double complex c = atof(argv[1]) + atof(argv[2])*I;
 
     //divide rows among procs
-    int num_rows = rank * floor(GLBL_NUM_ROWS/num_procs) + fmin(rank, GLBL_NUM_ROWS%num_procs);
+    int num_rows = floor(GLBL_NUM_ROWS / num_procs) + fmin(rank, GLBL_NUM_ROWS % num_procs);
 
     //allocate array for pixels each proc with process. Master needs to be able to collect all pixels
     colour *pixels = (rank == MASTER_PROC) ? (colour *) malloc(GLBL_NUM_ROWS * GLBL_NUM_COLS * sizeof(colour)) :
@@ -62,22 +62,22 @@ int main(int argc, char **argv) {
     }
 
     if (rank == MASTER_PROC) {
-        int num_pixels = sizeof(colour) * num_rows * GLBL_NUM_COLS;
         int *recv_counts = (int *) malloc(sizeof(int) * num_procs);
         int *displs = (int *) malloc(sizeof(int) * num_procs);
 
-        recv_counts[0] = num_pixels*3;
+        recv_counts[0] = 3 * num_rows * GLBL_NUM_COLS;
         displs[0] = 0;
 
-        for (int i = 1; i < num_procs; i++) {
-            recv_counts[i] =  i * floor(GLBL_NUM_ROWS/num_procs) + fmin(i, GLBL_NUM_ROWS%num_procs) * 3;
-            displs[i] = recv_counts[i-1] + displs[i-1];
+        for (int i = 1; i < num_procs; i++)
+        {
+            recv_counts[i] = (i * floor(GLBL_NUM_ROWS / num_procs) + fmin(i, GLBL_NUM_ROWS % num_procs)) * GLBL_NUM_COLS * 3;
+            displs[i] = recv_counts[i - 1] + displs[i - 1];
         }
 
         //gather procs' pixel arrays into master
         //will be ordered in recv array (master's pixel array) according to rank, so will be in order
         //MPI_IN_PLACE so that master doesn't send to itself (avoids error of using pixel array as send and recv buffer)
-        MPI_Gatherv(MPI_IN_PLACE, num_pixels, MPI_FLOAT, pixels, recv_counts, displs, MPI_FLOAT, MASTER_PROC, MPI_COMM_WORLD);
+        MPI_Gatherv(MPI_IN_PLACE, recv_counts[0], MPI_FLOAT, pixels, recv_counts, displs, MPI_FLOAT, MASTER_PROC, MPI_COMM_WORLD);
     } else {
         MPI_Gatherv(pixels, sizeof(pixels), MPI_FLOAT, NULL, NULL, NULL, MPI_FLOAT, MASTER_PROC, MPI_COMM_WORLD);
     }
@@ -107,12 +107,12 @@ colour calc_colour(double complex c, double complex z0) {
     }
 
     //0<=orb_point_count<=5 -> colour = 0, ..., 46<=orb_point_count<=50 -> colour = 10
-    int colour = ceil(orb_point_count / (ORB_COUNT_MAX / COLOURS_SIZE)) - 1;
+    int colour = (orb_point_count == 0) ? 0 : ceil((float) orb_point_count / (ORB_COUNT_MAX / COLOURS_SIZE)) - 1;
 
     return COLOURS[colour];
 }
 
-create_julia_set_image(colour *pixels, int argc, char **argv) {
+void create_julia_set_image(colour *pixels, int argc, char **argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(GLBL_NUM_COLS, GLBL_NUM_ROWS);
@@ -140,5 +140,5 @@ create_julia_set_image(colour *pixels, int argc, char **argv) {
         }
     }
 
-    SaveBitmap("output.bmp", 0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS);
+    //SaveBitmap("output.bmp", 0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS);
 }
