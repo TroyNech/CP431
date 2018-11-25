@@ -15,8 +15,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <glut.h>
-#include <gl.h>
+#include "GL/glut.h"
+#include "GL/gl.h"
+//#include <iostream>
+//#include <fstream>
 
 #define MASTER_PROC 0
 #define GLBL_NUM_ROWS 1000
@@ -25,6 +27,7 @@
 #define ORB_COUNT_MAX 50
 
 colour calc_colour(double complex c, double complex z0);
+create_julia_set_image(colour *pixels, int argc, char **argv);
 
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
@@ -85,29 +88,7 @@ int main(int argc, char **argv) {
 
         printf("\nTook %.3f seconds to calculate the Julia set\n\n", elapsed_seconds);
 
-        glutInit(&argc, argv);
-        glutInitDisplayMode(GLUT_DOUBLE);
-        glutInitWindowSize(GLBL_NUM_COLS, GLBL_NUM_ROWS);
-        glutCreateWindow("Julia Sets");
-
-        glClearColor(1.0, 1.0, 1.0, 0.0);
-        glMatrixMode(GL_PROJECTION);
-        gluOrtho2D(0.0, GLBL_NUM_COLS, GLBL_NUM_ROWS, 0.0);
-        
-        int iterator = 0;
-        float r,g,b = 0;
-        for (int i = 0; i < GLBL_NUM_COLS; i++){
-          for (int j = 0 ; j < GLBL_NUM_ROWS; j++){
-            r = pixels[iterator].red;
-            g = pixels[iterator].green;
-            b = pixels[iterator].blue;
-	    glBegin(GL_POINTS);
-            glColor3f(r,g,b);
-            glVertex2i(i,j);
-	    glEnd();
-            iterator++;
-          }
-        }
+        create_julia_set_image(pixels, argc, argv);
     }
 
     MPI_Finalize();
@@ -129,4 +110,35 @@ colour calc_colour(double complex c, double complex z0) {
     int colour = ceil(orb_point_count / (ORB_COUNT_MAX / COLOURS_SIZE)) - 1;
 
     return COLOURS[colour];
+}
+
+create_julia_set_image(colour *pixels, int argc, char **argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH);
+    glutInitWindowSize(GLBL_NUM_COLS, GLBL_NUM_ROWS);
+    glutCreateWindow("Julia Sets");
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(1.0, 1.0, 1.0, 0.0);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glEnable(GL_DEPTH_TEST);
+    gluOrtho2D(0.0, GLBL_NUM_COLS, GLBL_NUM_ROWS, 0.0);
+    
+    int iterator = 0;
+    float r, g, b = 0;
+    for (int i = 0; i < GLBL_NUM_COLS; i++) {
+        for (int j = 0 ; j < GLBL_NUM_ROWS; j++) {
+            r = pixels[iterator].red;
+            g = pixels[iterator].green;
+            b = pixels[iterator].blue;
+            glBegin(GL_POINTS);
+            glColor3f(r, g, b);
+            glVertex2i(i, j);
+            glEnd();
+            iterator++;
+        }
+    }
+
+    SaveBitmap("output.bmp", 0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS);
 }
