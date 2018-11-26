@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
     double complex c = atof(argv[1]) + atof(argv[2])*I;
 
     //divide rows among procs
-    int num_rows = floor(GLBL_NUM_ROWS / num_procs) + fmin(rank, GLBL_NUM_ROWS % num_procs);
+    int num_rows = GLBL_NUM_ROWS / num_procs + ((rank < GLBL_NUM_ROWS % num_procs) ? 1 : 0);
 
     //allocate array for pixels each proc with process. Master needs to be able to collect all pixels
     colour *pixels = (rank == MASTER_PROC) ? (colour *) malloc(GLBL_NUM_ROWS * GLBL_NUM_COLS * sizeof(colour)) 
@@ -67,10 +67,11 @@ int main(int argc, char **argv) {
         recv_counts[0] = 3 * num_rows * GLBL_NUM_COLS;
         displs[0] = 0;
 
-        for (int i = 1; i < num_procs; i++)
-        {
-            recv_counts[i] = (i * floor(GLBL_NUM_ROWS / num_procs) + fmin(i, GLBL_NUM_ROWS % num_procs)) * GLBL_NUM_COLS * 3;
-            displs[i] = recv_counts[i - 1] + displs[i - 1];
+        for (int proc = 1; proc < num_procs; proc++) {
+            int proc_num_rows = GLBL_NUM_ROWS / num_procs + ((proc < GLBL_NUM_ROWS % num_procs) ? 1 : 0);
+         
+            recv_counts[proc] = proc_num_rows * GLBL_NUM_COLS * 3;
+            displs[proc] = recv_counts[proc - 1] + displs[proc - 1];
         }
 
         //gather procs' pixel arrays into master
