@@ -124,35 +124,70 @@ double complex map_point(double complex grid_point) {
     return real + imag*I;
 }
 
+void SaveFile(){
+	BITMAPFILEHEADER bf;
+	BITMAPINFOHEADER bi;
+	
+	FILE *file = fopen("Julia_Set.bmp", "wb");
+	
+	unsigned char *image = (unsigned char*)malloc(sizeof(unsigned char)*GLBL_NUM_COLS*GLBL_NUM_ROWS*3);
+
+	if(image!=NULL ){
+		if( file!=NULL ){
+			glReadPixels( 0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS, GL_BGR_EXT, GL_UNSIGNED_BYTE, image );
+
+			memset( &bf, 0, sizeof( bf ) );
+			memset( &bi, 0, sizeof( bi ) );
+
+			bf.bfType	= 0x4d42;
+			bf.bfSize	= sizeof(bf)+sizeof(bi)+GLBL_NUM_COLS*GLBL_NUM_ROWS*3;
+			bf.bfOffBits	= sizeof(bf)+sizeof(bi);
+			bi.biSize	= sizeof(bi);
+			bi.biWidth	= GLBL_NUM_COLS;
+			bi.biHeight	= GLBL_NUM_ROWS;
+			bi.biPlanes	= 1;
+			bi.biBitCount	= 24;
+			bi.biSizeImage	= GLBL_NUM_COLS*GLBL_NUM_ROWS*3;
+
+			fwrite( &bf, sizeof(bf), 1, file );
+			fwrite( &bi, sizeof(bi), 1, file );
+			fwrite( image, sizeof(unsigned char), GLBL_NUM_ROWS*GLBL_NUM_COLS*3, file);
+
+			fclose( file );
+		}
+		free( image );
+	}
+}
+
 void create_julia_set_image(colour *pixels, int argc, char **argv) {
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glColor3f(0.0, 0.0, 0.0);
+	glFlush();
+	
+	glViewport(0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS);
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
     glutInitWindowSize(GLBL_NUM_COLS, GLBL_NUM_ROWS);
     glutCreateWindow("Julia Sets");
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glClearColor(1.0, 1.0, 1.0, 0.0);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glEnable(GL_DEPTH_TEST);
-    gluOrtho2D(0.0, GLBL_NUM_COLS, GLBL_NUM_ROWS, 0.0);
-
-    int iterator = 0;
+	int iterator = 0;
     float r, g, b = 0;
     for (int i = 0; i < GLBL_NUM_COLS; i++) {
         for (int j = 0 ; j < GLBL_NUM_ROWS; j++) {
             r = pixels[iterator].red;
             g = pixels[iterator].green;
             b = pixels[iterator].blue;
-            glBegin(GL_POINTS);
+            glPointSize(1.0);
+			glBegin(GL_POINTS);
             glColor3f(r, g, b);
             glVertex2i(i, j);
             glEnd();
             iterator++;
         }
     }
-
-    glFlush();
-
-    //SaveBitmap("output.bmp", 0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS);
+		
+	saveFile();
+	
+	//glutMainLoop();
+	return 0;
 }
