@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
 
         printf("\nTook %.3f seconds to calculate the Julia set\n\n", elapsed_seconds);
 
-//        create_julia_set_image(pixels, argc, argv);
+        create_julia_set_image(pixels, argc, argv);
 //        scanf("%d", rank);
     }
 
@@ -167,6 +167,55 @@ void saveFile(){
         }
 }
 
+int SaveBitmap(const char *filename, int nX, int nY, int nWidth, int nHeight) {
+	BITMAPFILEHEADER bf;
+	BITMAPINFOHEADER bi;
+
+	unsigned char *ptrImage = (unsigned char*) malloc(
+			sizeof(unsigned char) * nWidth * nHeight * 3
+					+ (4 - (3 * nWidth) % 4) * nHeight);
+
+	if (ptrImage == NULL)
+		return EXIT_FAILURE;
+
+	FILE *fptr = fopen(filename, "wb");
+
+	if (fptr == NULL) {
+		free(ptrImage);
+		return EXIT_FAILURE;
+	}
+
+	//read pixels from framebuffer
+	glReadPixels(nX, nY, nWidth, nHeight, GL_BGR_EXT, GL_UNSIGNED_BYTE,
+			ptrImage);
+
+	// set memory buffer for bitmap header and informaiton header
+	memset(&bf, 0, sizeof(bf));
+	memset(&bi, 0, sizeof(bi));
+
+	// configure the headers with the give parameters
+
+	bf.bfType = 0x4d42;
+	bf.bfSize = sizeof(bf) + sizeof(bi) + nWidth * nHeight * 3
+			+ (4 - (3 * nWidth) % 4) * nHeight;
+	bf.bfOffBits = sizeof(bf) + sizeof(bi);
+	bi.biSize = sizeof(bi);
+	bi.biWidth = nWidth + nWidth % 4;
+	bi.biHeight = nHeight;
+	bi.biPlanes = 1;
+	bi.biBitCount = 24;
+	bi.biSizeImage = nWidth * nHeight * 3 + (4 - (3 * nWidth) % 4) * nHeight;
+
+	// to files
+	fwrite(&bf, sizeof(bf), 1, fptr);
+	fwrite(&bi, sizeof(bi), 1, fptr);
+	fwrite(ptrImage, sizeof(unsigned char),
+			nWidth * nHeight * 3 + (4 - (3 * nWidth) % 4) * nHeight, fptr);
+	fclose(fptr);
+	free(ptrImage);
+	return 1;
+}
+
 void create_julia_set_image(colour *pixels, int argc, char **argv) {
         glClearColor(0.0, 0.0, 0.0, 0.0);
         glColor3f(0.0, 0.0, 0.0);
@@ -174,14 +223,14 @@ void create_julia_set_image(colour *pixels, int argc, char **argv) {
 
         glViewport(0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS);
         glutInit(&argc, argv);
-        glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+        //glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
         glutInitWindowSize(GLBL_NUM_COLS, GLBL_NUM_ROWS);
         glutCreateWindow("Julia Sets");
 
         int iterator = 0;
         float r, g, b = 0;
         for (int i = 0; i < GLBL_NUM_COLS; i++) {
-        for (int j = 0 ; j < GLBL_NUM_ROWS; j++) {
+			for (int j = 0 ; j < GLBL_NUM_ROWS; j++) {
                 r = pixels[iterator].red;
                 g = pixels[iterator].green;
                 b = pixels[iterator].blue;
@@ -191,10 +240,10 @@ void create_julia_set_image(colour *pixels, int argc, char **argv) {
                 glVertex2i(i, j);
                 glEnd();
                 iterator++;
-        }
+			}
         }
 
-        saveFile();
+        SaveBitmap("julia_set_image.bmp", 0 , 0 , GLBL_NUM_COLS, GLBL_NUM_ROWS);
 
         glutMainLoop();
 }
