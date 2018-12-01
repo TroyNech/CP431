@@ -30,6 +30,8 @@ colour calc_colour(double complex c, double complex grid_point);
 double complex map_point(double complex grid_point);
 void create_julia_set_image(colour *pixels, int argc, char **argv);
 
+int SaveBitmap(const char *filename, int nX, int nY, int nWidth, int nHeight);
+
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
 
@@ -161,6 +163,55 @@ void SaveFile(){
 	}
 }
 
+int SaveBitmap(const char *filename, int nX, int nY, int nWidth, int nHeight) {
+	BITMAPFILEHEADER bf;
+	BITMAPINFOHEADER bi;
+
+	unsigned char *ptrImage = (unsigned char*) malloc(
+			sizeof(unsigned char) * nWidth * nHeight * 3
+					+ (4 - (3 * nWidth) % 4) * nHeight);
+
+	if (ptrImage == NULL)
+		return EXIT_FAILURE;
+
+	FILE *fptr = fopen(filename, "wb");
+
+	if (fptr == NULL) {
+		free(ptrImage);
+		return EXIT_FAILURE;
+	}
+
+	//read pixels from framebuffer
+	glReadPixels(nX, nY, nWidth, nHeight, GL_BGR_EXT, GL_UNSIGNED_BYTE,
+			ptrImage);
+
+	// set memory buffer for bitmap header and informaiton header
+	memset(&bf, 0, sizeof(bf));
+	memset(&bi, 0, sizeof(bi));
+
+	// configure the headers with the give parameters
+
+	bf.bfType = 0x4d42;
+	bf.bfSize = sizeof(bf) + sizeof(bi) + nWidth * nHeight * 3
+			+ (4 - (3 * nWidth) % 4) * nHeight;
+	bf.bfOffBits = sizeof(bf) + sizeof(bi);
+	bi.biSize = sizeof(bi);
+	bi.biWidth = nWidth + nWidth % 4;
+	bi.biHeight = nHeight;
+	bi.biPlanes = 1;
+	bi.biBitCount = 24;
+	bi.biSizeImage = nWidth * nHeight * 3 + (4 - (3 * nWidth) % 4) * nHeight;
+
+	// to files
+	fwrite(&bf, sizeof(bf), 1, fptr);
+	fwrite(&bi, sizeof(bi), 1, fptr);
+	fwrite(ptrImage, sizeof(unsigned char),
+			nWidth * nHeight * 3 + (4 - (3 * nWidth) % 4) * nHeight, fptr);
+	fclose(fptr);
+	free(ptrImage);
+	return 1;
+}
+
 void create_julia_set_image(colour *pixels, int argc, char **argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
@@ -179,6 +230,8 @@ void create_julia_set_image(colour *pixels, int argc, char **argv) {
         glTexCoord2f(0.0f, 1.0f); glVertex2f(-1.0,  1.0);
     glEnd();
 
+	int SaveBitmap("Julia_Set_Image.bmp", 0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS);
+	
     //glFlush();
 
 	saveFile();
