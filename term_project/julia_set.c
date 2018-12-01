@@ -233,6 +233,4 @@ void create_julia_set_image(colour *pixels, int argc, char **argv) {
     SaveBitmap("Julia_Set_Image.bmp", 0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS);
 	
     //glFlush();
-
-	saveFile();
 }
