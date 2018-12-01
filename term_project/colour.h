@@ -2,24 +2,24 @@
 * Authors: Troy Nechanicky, 150405860; Ben Ngan, 140567260; Alvin Yao, 150580680
 * Date: November 16, 2018
 *
-* Note: Valid colour values are [0,1]
+* Note: Valid colour values are [0,255]
 */
 
 typedef struct colour {
-    float red, green, blue;
+    int red, green, blue;
 } colour;
 
-#define COLOUR1 {0.5, 1, 1}
-#define COLOUR2 {1, 1, 1}
-#define COLOUR3 {1, 1, 1}
-#define COLOUR4 {1, 1, 1}
-#define COLOUR5 {1, 1, 1}
-#define COLOUR6 {1, 1, 1}
-#define COLOUR7 {1, 1, 1}
-#define COLOUR8 {1, 1, 1}
-#define COLOUR9 {1, 1, 1}
-#define COLOUR10 {1, 0, 0}
+#define COLOUR1 {255, 0, 0} //red
+#define COLOUR2 {255, 128, 0} //orange
+#define COLOUR3 {255, 255, 0} //yellow
+#define COLOUR4 {0, 255, 0} //green
+#define COLOUR5 {0, 255, 255} //cyan
+#define COLOUR6 {0, 0, 255} //blue
+#define COLOUR7 {127, 0, 255} //purple
+#define COLOUR8 {255, 0, 255} //pink
+#define COLOUR9 {128, 128, 128} //gray
+#define COLOUR10 {255, 255, 255} //white
 
 #define COLOURS_SIZE 10
 
-const colour COLOURS[10] = {COLOUR1, COLOUR2, COLOUR3, COLOUR4, COLOUR5, COLOUR6, COLOUR7, COLOUR8, COLOUR9, COLOUR10};
+const colour COLOURS[10] = {COLOUR1, COLOUR2, COLOUR3, COLOUR4, COLOUR5, COLOUR6, COLOUR7, COLOUR8, COLOUR9, COLOUR10}
