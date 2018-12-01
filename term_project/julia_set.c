@@ -132,11 +132,16 @@ void create_julia_set_image(colour *pixels, char *filename) {
     FILE * fp;
 	fp = fopen(full_filename, "w");	
 
-    //header: magic_number height width max_colour
+    //header: magic_number width height max_colour
     //see http://netpbm.sourceforge.net/doc/ppm.html
-	fprintf(fp, "P6\n%d %d\n255\n", GLBL_NUM_COLS, GLBL_NUM_ROWS); 
-    
-    fwrite(pixels, sizeof(colour), GLBL_NUM_COLS * GLBL_NUM_ROWS, fp);
+	fprintf(fp, "P6 %d %d 255\n", GLBL_NUM_COLS, GLBL_NUM_ROWS); 
+
+    //need to write rows backwards for some reason
+    for (int row = 0; row < GLBL_NUM_ROWS; row++) {
+        for (int col = GLBL_NUM_COLS - 1; col >= 0; col--) {
+            fwrite(&pixels[row * GLBL_NUM_COLS + col], sizeof(colour), 1, fp);
+        }
+    }
 	
     fclose(fp);
 }
