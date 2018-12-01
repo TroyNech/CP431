@@ -1,4 +1,3 @@
-
 /*
 * Authors: Troy Nechanicky, 150405860; Ben Ngan, 140567260; Alvin Yao, 150580680
 * Date: November 16, 2018
@@ -18,12 +17,6 @@
 #include <time.h>
 #include "GL/glut.h"
 #include "GL/gl.h"
-#include "bitmap.h"
-#include <string.h>
-
-#define GL_BGR_EXT 0x80E0
-#define GL_GBRA 0x80E0
-#define GL_BGRA 0x80E1
 
 #define MASTER_PROC 0
 #define GLBL_NUM_ROWS 1000
@@ -34,7 +27,6 @@
 colour calc_colour(double complex c, double complex grid_point);
 double complex map_point(double complex grid_point);
 void create_julia_set_image(colour *pixels, int argc, char **argv);
-void saveFile();
 
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
@@ -54,7 +46,7 @@ int main(int argc, char **argv) {
     int num_rows = GLBL_NUM_ROWS / num_procs + ((rank < GLBL_NUM_ROWS % num_procs) ? 1 : 0);
 
     //allocate array for pixels each proc with process. Master needs to be able to collect all pixels
-    colour *pixels = (rank == MASTER_PROC) ? (colour *) malloc(GLBL_NUM_ROWS * GLBL_NUM_COLS * sizeof(colour))
+    colour *pixels = (rank == MASTER_PROC) ? (colour *) malloc(GLBL_NUM_ROWS * GLBL_NUM_COLS * sizeof(colour)) 
         : (colour *) malloc(num_rows * GLBL_NUM_COLS * sizeof(colour));
 
     //start at top left point in procs range
@@ -77,7 +69,7 @@ int main(int argc, char **argv) {
 
         for (int proc = 1; proc < num_procs; proc++) {
             int proc_num_rows = GLBL_NUM_ROWS / num_procs + ((proc < GLBL_NUM_ROWS % num_procs) ? 1 : 0);
-
+         
             recv_counts[proc] = proc_num_rows * GLBL_NUM_COLS * 3;
             displs[proc] = recv_counts[proc - 1] + displs[proc - 1];
         }
@@ -96,8 +88,8 @@ int main(int argc, char **argv) {
 
         printf("\nTook %.3f seconds to calculate the Julia set\n\n", elapsed_seconds);
 
-//        create_julia_set_image(pixels, argc, argv);
-//        scanf("%d", rank);
+        create_julia_set_image(pixels, argc, argv);
+        scanf("%d", rank);
     }
 
     MPI_Finalize();
@@ -132,69 +124,70 @@ double complex map_point(double complex grid_point) {
     return real + imag*I;
 }
 
-void saveFile(){
-        BITMAPFILEHEADER bf;
-        BITMAPINFOHEADER bi;
+void SaveFile(){
+	BITMAPFILEHEADER bf;
+	BITMAPINFOHEADER bi;
+	
+	FILE *file = fopen("Julia_Set.bmp", "wb");
+	
+	unsigned char *image = (unsigned char*)malloc(sizeof(unsigned char)*GLBL_NUM_COLS*GLBL_NUM_ROWS*3);
 
-        FILE *file = fopen("Julia_Set.bmp", "wb");
+	if(image!=NULL ){
+		if( file!=NULL ){
+			glReadPixels( 0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS, GL_BGR_EXT, GL_UNSIGNED_BYTE, image );
 
-        unsigned char *image = (unsigned char*)malloc(sizeof(unsigned char)*GLBL_NUM_COLS*GLBL_NUM_ROWS*3);
+			memset( &bf, 0, sizeof( bf ) );
+			memset( &bi, 0, sizeof( bi ) );
 
-        if(image!=NULL ){
-                if( file!=NULL ){
-                        glReadPixels( 0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS, GL_BGR_EXT, GL_UNSIGNED_BYTE, image );
+			bf.bfType	= 0x4d42;
+			bf.bfSize	= sizeof(bf)+sizeof(bi)+GLBL_NUM_COLS*GLBL_NUM_ROWS*3;
+			bf.bfOffBits	= sizeof(bf)+sizeof(bi);
+			bi.biSize	= sizeof(bi);
+			bi.biWidth	= GLBL_NUM_COLS;
+			bi.biHeight	= GLBL_NUM_ROWS;
+			bi.biPlanes	= 1;
+			bi.biBitCount	= 24;
+			bi.biSizeImage	= GLBL_NUM_COLS*GLBL_NUM_ROWS*3;
 
-                        memset( &bf, 0, sizeof( bf ) );
-                        memset( &bi, 0, sizeof( bi ) );
+			fwrite( &bf, sizeof(bf), 1, file );
+			fwrite( &bi, sizeof(bi), 1, file );
+			fwrite( image, sizeof(unsigned char), GLBL_NUM_ROWS*GLBL_NUM_COLS*3, file);
 
-                        bf.bfType       = 0x4d42;
-                        bf.bfSize       = sizeof(bf)+sizeof(bi)+GLBL_NUM_COLS*GLBL_NUM_ROWS*3;
-                        bf.bfOffBits    = sizeof(bf)+sizeof(bi);
-                        bi.biSize       = sizeof(bi);
-                        bi.biWidth      = GLBL_NUM_COLS;
-                        bi.biHeight     = GLBL_NUM_ROWS;
-                        bi.biPlanes     = 1;
-                        bi.biBitCount   = 24;
-                        bi.biSizeImage  = GLBL_NUM_COLS*GLBL_NUM_ROWS*3;
-
-                        fwrite( &bf, sizeof(bf), 1, file );
-                        fwrite( &bi, sizeof(bi), 1, file );
-                        fwrite( image, sizeof(unsigned char), GLBL_NUM_ROWS*GLBL_NUM_COLS*3, file);
-
-                        fclose( file );
-                }
-                free( image );
-        }
+			fclose( file );
+		}
+		free( image );
+	}
 }
 
 void create_julia_set_image(colour *pixels, int argc, char **argv) {
-        glClearColor(0.0, 0.0, 0.0, 0.0);
-        glColor3f(0.0, 0.0, 0.0);
-        glFlush();
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glColor3f(0.0, 0.0, 0.0);
+	glFlush();
+	
+	glViewport(0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS);
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(GLBL_NUM_COLS, GLBL_NUM_ROWS);
+    glutCreateWindow("Julia Sets");
 
-        glViewport(0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS);
-        glutInit(&argc, argv);
-        glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-        glutInitWindowSize(GLBL_NUM_COLS, GLBL_NUM_ROWS);
-        glutCreateWindow("Julia Sets");
-
-        int iterator = 0;
-        float r, g, b = 0;
-        for (int i = 0; i < GLBL_NUM_COLS; i++) {
+	int iterator = 0;
+    float r, g, b = 0;
+    for (int i = 0; i < GLBL_NUM_COLS; i++) {
         for (int j = 0 ; j < GLBL_NUM_ROWS; j++) {
-                r = pixels[iterator].red;
-                g = pixels[iterator].green;
-                b = pixels[iterator].blue;
-                glPointSize(1.0);
-                glBegin(GL_POINTS);
-                glColor3f(r, g, b);
-                glVertex2i(i, j);
-                glEnd();
-                iterator++;
+            r = pixels[iterator].red;
+            g = pixels[iterator].green;
+            b = pixels[iterator].blue;
+            glPointSize(1.0);
+			glBegin(GL_POINTS);
+            glColor3f(r, g, b);
+            glVertex2i(i, j);
+            glEnd();
+            iterator++;
         }
-        }
-
-        saveFile();
-
-        glutMainLoop();
+    }
+		
+	saveFile();
+	
+	//glutMainLoop();
+	return 0;
 }
