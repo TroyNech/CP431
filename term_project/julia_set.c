@@ -243,11 +243,11 @@ void create_julia_set_image(colour *pixels, int argc, char **argv) {
 	
 	for(int i = 0; i < GLBL_NUM_ROWS; i++){
 		for(int j = 0 ; j < GLBL_NUM_COLS; j++){
-			int colours[3];
-			colours[0] = pixels[iterator].red;
-			colours[1] = pixels[iterator].green;
-			colours[2] = pixels[iterator].blue;
-			fwrite(colours, 2, 6, fp);
+			unsigned char colours[3];
+			colours[0] = (unsigned char)pixels[iterator].red;
+			colours[1] = (unsigned char)pixels[iterator].green;
+			colours[2] = (unsigned char)pixels[iterator].blue;
+			fwrite(colours, 1, 3, fp);
 			iterator++;
 		}
 	}	
