@@ -1,6 +1,6 @@
 /*
 * Authors: Troy Nechanicky, 150405860; Ben Ngan, 140567260; Alvin Yao, 150580680
-* Date: November 31, 2018
+* Date: December 1, 2018
 *
 * Usage: julia_set c_real c_imag output_file
 * Description:
@@ -18,8 +18,8 @@
 #include <time.h>
 
 #define MASTER_PROC 0
-#define GLBL_NUM_ROWS 1000
-#define GLBL_NUM_COLS 1000
+#define GLBL_NUM_ROWS 8000
+#define GLBL_NUM_COLS 8000
 #define RADIUS_LIMIT 2
 #define ORB_COUNT_MAX 50
 
