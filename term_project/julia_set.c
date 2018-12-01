@@ -1,22 +1,24 @@
 /*
 * Authors: Troy Nechanicky, 150405860; Ben Ngan, 140567260; Alvin Yao, 150580680
-* Date: November 16, 2018
+* Date: November 31, 2018
 *
 * Usage: julia_set c_real c_imag
 * Description:
-*   Displays an image of the Julia set for z^2 + c using points from (0,0) to (1000,1000)
+*   Creates an image of the Julia set for z^2 + c using 3000x3000 points from (-2,-2) to (2,2)
 * Compile like: mpicc julia_set.c -o julia_set -std=c99 -lm -lglut -lGL -lGLU
 */
 
+#include "bitmap.h"
 #include <complex.h>
 #include "colour.h"
+#include <GL/glut.h>
+#include <GL/gl.h>
 #include <math.h>
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
-#include "GL/glut.h"
-#include "GL/gl.h"
 
 #define MASTER_PROC 0
 #define GLBL_NUM_ROWS 1000
@@ -89,7 +91,7 @@ int main(int argc, char **argv) {
         printf("\nTook %.3f seconds to calculate the Julia set\n\n", elapsed_seconds);
 
         create_julia_set_image(pixels, argc, argv);
-        scanf("%d", rank);
+        //scanf("%d", rank);
     }
 
     MPI_Finalize();
@@ -160,34 +162,24 @@ void SaveFile(){
 }
 
 void create_julia_set_image(colour *pixels, int argc, char **argv) {
-	glClearColor(0.0, 0.0, 0.0, 0.0);
-	glColor3f(0.0, 0.0, 0.0);
-	glFlush();
-	
-	glViewport(0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS);
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
     glutInitWindowSize(GLBL_NUM_COLS, GLBL_NUM_ROWS);
     glutCreateWindow("Julia Sets");
 
-	int iterator = 0;
-    float r, g, b = 0;
-    for (int i = 0; i < GLBL_NUM_COLS; i++) {
-        for (int j = 0 ; j < GLBL_NUM_ROWS; j++) {
-            r = pixels[iterator].red;
-            g = pixels[iterator].green;
-            b = pixels[iterator].blue;
-            glPointSize(1.0);
-			glBegin(GL_POINTS);
-            glColor3f(r, g, b);
-            glVertex2i(i, j);
-            glEnd();
-            iterator++;
-        }
-    }
-		
+    glEnable (GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, GLBL_NUM_COLS, GLBL_NUM_ROWS, 0, GL_RGB, GL_FLOAT, &pixels[0]);
+
+    glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 0.0f); glVertex2f(-1.0, -1.0);
+        glTexCoord2f(1.0f, 0.0f); glVertex2f( 1.0, -1.0);
+        glTexCoord2f(1.0f, 1.0f); glVertex2f( 1.0,  1.0);
+        glTexCoord2f(0.0f, 1.0f); glVertex2f(-1.0,  1.0);
+    glEnd();
+
+    //glFlush();
+
 	saveFile();
-	
-	//glutMainLoop();
-	return 0;
 }
