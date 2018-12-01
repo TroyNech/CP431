@@ -213,24 +213,45 @@ int SaveBitmap(const char *filename, int nX, int nY, int nWidth, int nHeight) {
 }
 
 void create_julia_set_image(colour *pixels, int argc, char **argv) {
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-    glutInitWindowSize(GLBL_NUM_COLS, GLBL_NUM_ROWS);
-    glutCreateWindow("Julia Sets");
+    //glutInit(&argc, argv);
+    //glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    //glutInitWindowSize(GLBL_NUM_COLS, GLBL_NUM_ROWS);
+    //glutCreateWindow("Julia Sets");
 
-    glEnable (GL_TEXTURE_2D);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    //glEnable (GL_TEXTURE_2D);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-    glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, GLBL_NUM_COLS, GLBL_NUM_ROWS, 0, GL_RGB, GL_FLOAT, &pixels[0]);
+    //glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, GLBL_NUM_COLS, GLBL_NUM_ROWS, 0, GL_RGB, GL_FLOAT, &pixels[0]);
 
-    glBegin(GL_QUADS);
-        glTexCoord2f(0.0f, 0.0f); glVertex2f(-1.0, -1.0);
-        glTexCoord2f(1.0f, 0.0f); glVertex2f( 1.0, -1.0);
-        glTexCoord2f(1.0f, 1.0f); glVertex2f( 1.0,  1.0);
-        glTexCoord2f(0.0f, 1.0f); glVertex2f(-1.0,  1.0);
-    glEnd();
+    //glBegin(GL_QUADS);
+        //glTexCoord2f(0.0f, 0.0f); glVertex2f(-1.0, -1.0);
+        //glTexCoord2f(1.0f, 0.0f); glVertex2f( 1.0, -1.0);
+        //glTexCoord2f(1.0f, 1.0f); glVertex2f( 1.0,  1.0);
+        //glTexCoord2f(0.0f, 1.0f); glVertex2f(-1.0,  1.0);
+    //glEnd();
 
-    SaveBitmap("Julia_Set_Image.bmp", 0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS);
+    //SaveBitmap("Julia_Set_Image.bmp", 0, 0, GLBL_NUM_COLS, GLBL_NUM_ROWS);
 	
     //glFlush();
+
+    //PPM Stuff
+    	FILE * fp;
+	fp = fopen("image.ppm", "wb");	
+	fprintf(fp, "P6\n%d %d\n255\n", GLBL_NUM_COLS, GLBL_NUM_ROWS);
+	
+	int iterator = 0;
+	
+	for(int i = 0; i < GLBL_NUM_ROWS; i++){
+		for(int j = 0 ; j < GLBL_NUM_COLS; j++){
+			int colours[3];
+			colours[0] = pixels[iterator].red;
+			colours[1] = pixels[iterator].green;
+			colours[2] = pixels[iterator].blue;
+			fwrite(colours, 2, 6, fp);
+			iterator++;
+		}
+	}	
+	
+	fclose(fp);
+    
 }
