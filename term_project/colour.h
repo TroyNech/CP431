@@ -6,7 +6,7 @@
 */
 
 typedef struct colour {
-    int red, green, blue;
+    unsigned char red, green, blue;
 } colour;
 
 #define COLOUR1 {255, 0, 0} //red
