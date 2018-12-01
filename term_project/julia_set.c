@@ -4,7 +4,7 @@
 *
 * Usage: julia_set c_real c_imag output_file
 * Description:
-*   Creates an image of the Julia set for z^2 + c using 3000x3000 points from (-2,-2) to (2,2)
+*   Creates an image of the Julia set for z^2 + c using GLBL_NUM_ROWS*GLBL_NUM_COLS points from (-2,-2) to (2,2)
 * Compile like: mpicc julia_set.c -o julia_set -std=c99 -lm
 */
 
